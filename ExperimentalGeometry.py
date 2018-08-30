@@ -73,7 +73,7 @@ class ScatteringGeometry:
             self._Mtheta = misc.Delta
 
         self._dq = ( self._Mtheta( self._dtheta ) @ self._Ghkl ) - self._Ghkl   
-            # this is the 3x1 step in reciprocal space along thye rocking curve
+            # this is the 3x1 step in reciprocal space along the rocking curve
 
         detXY = 2. * np.pi * self._pix / ( self._lambda * self._arm ) *\
             misc.Delta( self._delta ) @\
@@ -95,14 +95,14 @@ class ScatteringGeometry:
             axisa=0, axisb=0
         )
             # The columns of this matrix are the sampling directions in 3D real space.
-            # Can also be computed as  2. * np.pi * np.linalg.inv( self._Brecip ).
+            # Can also be computed as  2. * np.pi * np.linalg.inv( self._Brecip.T ).
 
         self._Brecip    *= 1.e-9    # scaling to nm^-1 units
         self._Breal     *= 1.e+9    # scaling to nm units
 
     def getSamplingBases( self ):
         """getSamplingBases():
-        returns a tuple containing the sampling babses in real space (nm) and reciprocal space (nm^-1)
+        returns a tuple containing the sampling bases in real space (nm) and reciprocal space (nm^-1)
         """
         return self._Breal, self._Brecip
 
