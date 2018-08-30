@@ -1,0 +1,8 @@
+*.fig
+__pycache__/*
+*.mat
+*.fig
+*.html
+.ipynb_checkpoints/*
+.*.*.swp
+*.ipynb
