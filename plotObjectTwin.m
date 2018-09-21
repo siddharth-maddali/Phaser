@@ -13,20 +13,28 @@ function plotObjectTwin( rhoPhased, isoval, varargin )
         rhoPhased = centerPhase( abs( rhoPhased ) .* exp( 1i * ( -angle( rhoPhased ) ) ) );
     end
     
-
     [ x, y, z ] = meshgrid( 1:size( rhoPhased, 1 ), 1:size( rhoPhased, 2 ), 1:size( rhoPhased, 3 ) );
     y = max( y(:) ) - y;
     
     x = x - mean( x(:) );
     y = y - mean( y(:) );
     z = z - mean( z(:) );
-
+    
     pts = -skew * [ x(:) y(:) z(:) ]';
+%     pts = pts - repmat( mean( pts, 2 ), 1, size( pts, 2 ) );
     
     x = reshape( pts(1,:)', size( rhoPhased ) );
     y = reshape( pts(2,:)', size( rhoPhased ) );
     z = reshape( pts(3,:)', size( rhoPhased ) );
     
+    xmean = sum( sum( sum( x .* abs( rhoPhased ) ) ) ) / sum( sum( sum( abs( rhoPhased ) ) ) );
+    ymean = sum( sum( sum( y .* abs( rhoPhased ) ) ) ) / sum( sum( sum( abs( rhoPhased ) ) ) );
+    zmean = sum( sum( sum( z .* abs( rhoPhased ) ) ) ) / sum( sum( sum( abs( rhoPhased ) ) ) );
+    
+    x = x - xmean;
+    y = y - ymean; 
+    z = z - zmean;
+
     
     
 %     fig = figure;

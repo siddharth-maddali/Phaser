@@ -1,4 +1,4 @@
-function plotObjectStraight( rhoPhased, isoval, varargin )
+function [ x, y, z ] = plotObjectStraight( rhoPhased, isoval, varargin )
 
     if nargin == 2
         skew = eye( 3 );
@@ -6,7 +6,6 @@ function plotObjectStraight( rhoPhased, isoval, varargin )
         skew = varargin{1};
     end
     
-%     meanang = sum( angle( rhoPhased(:) ).* abs( rhoPhased(:) ) ) / sum( abs( rhoPhased(:) ) );
     if nargin == 4
         rhoPhased = centerPhase( abs( rhoPhased ) .* exp( 1i * ( angle( rhoPhased ) ) ), varargin{2} );
     else
@@ -21,10 +20,19 @@ function plotObjectStraight( rhoPhased, isoval, varargin )
     z = z - mean( z(:) );
     
     pts = skew * [ x(:) y(:) z(:) ]';
+%     pts = pts - repmat( mean( pts, 2 ), 1, size( pts, 2 ) );
     
     x = reshape( pts(1,:)', size( rhoPhased ) );
     y = reshape( pts(2,:)', size( rhoPhased ) );
     z = reshape( pts(3,:)', size( rhoPhased ) );
+    
+    xmean = sum( sum( sum( x .* abs( rhoPhased ) ) ) ) / sum( sum( sum( abs( rhoPhased ) ) ) );
+    ymean = sum( sum( sum( y .* abs( rhoPhased ) ) ) ) / sum( sum( sum( abs( rhoPhased ) ) ) );
+    zmean = sum( sum( sum( z .* abs( rhoPhased ) ) ) ) / sum( sum( sum( abs( rhoPhased ) ) ) );
+    
+    x = x - xmean;
+    y = y - ymean; 
+    z = z - zmean;
     
     
     
@@ -37,7 +45,7 @@ function plotObjectStraight( rhoPhased, isoval, varargin )
     );
 
 
-    iso.vertices = iso.vertices - repmat( mean( iso.vertices, 1 ), size( iso.vertices, 1 ), 1 );
+%     iso.vertices = iso.vertices - repmat( mean( iso.vertices, 1 ), size( iso.vertices, 1 ), 1 );
 %     size( iso.vertices )
 %     iso.vertices = ( skew * ( iso.vertices )' )';
 

@@ -41,6 +41,8 @@ from pyfftw.interfaces.numpy_fft import fftshift, fftn, ifftn
 from scipy.ndimage.filters import gaussian_filter
 from tqdm import tqdm
 
+import GPUModule as accelerator
+
 
 class Phaser:
 
@@ -48,8 +50,10 @@ class Phaser:
             modulus,
             support,
             beta=0.9, 
-            binning=1,
+            binning=1,      # for high-energy CDI. Set to 1 for regular phase retrieval.
             random_start=True, 
+            gpu=False,
+            outlog=''       # matters only for GPU
             ):
         self._modulus           = fftshift( modulus )
         self._support           = support
@@ -71,6 +75,12 @@ class Phaser:
         self._error             = []
         self._UpdateError()
 
+        if gpu==True:
+            self.gpusolver = accelerator.Solver( 
+                self.generateGPUPackage(),
+                outlog=outlog
+            )
+
 # Writer function to manually update support
     def UpdateSupport( self, support ):
         self._support = support
@@ -85,8 +95,12 @@ class Phaser:
         return
 
 # Reader function for the retrieved image
-    def Image( self ):
+    def finalImage( self ):
         return self._cImage
+
+# Reader function for estimated support
+    def finalSupport( self ):
+        return self._support
 
 # Reader function for the final computed modulus
     def Modulus( self ):
@@ -101,12 +115,16 @@ class Phaser:
 
 # Updating the error metric
     def _UpdateError( self ):
-        self._error += [ ( ( self._cImage_fft_mod - self._modulus )**2 * self._modulus ).sum() / self._modulus_sum ]
+        self._error += [ 
+            ( 
+                ( self._cImage_fft_mod - self._modulus )**2 * self._modulus 
+            ).sum() / self._modulus_sum 
+        ]
         return
 
 # Error reduction algorithm
     def ErrorReduction( self, num_iterations ):
-        for i in tqdm( list( range( num_iterations ) ), desc='ER' ):
+        for i in tqdm( list( range( num_iterations ) ), desc=' ER' ):
             self._ModProject()
             self._cImage *= self._support
             self._cImage_fft_mod = np.absolute( fftn( self._cImage ) )
@@ -118,13 +136,14 @@ class Phaser:
         for i in tqdm( list( range( num_iterations ) ), desc='HIO' ):
             origImage = self._cImage.copy() 
             self._ModProject()
-            self._cImage = ( self._support * self._cImage ) + self._support_comp * ( origImage - self._beta * self._cImage )
+            self._cImage = ( self._support * self._cImage ) +\
+                self._support_comp * ( origImage - self._beta * self._cImage )
             self._UpdateError()
         return
 
 # Solvent flipping algorithm
     def SolventFlipping( self, num_iterations ):
-        for i in tqdm( list( range( num_iterations ) ), desc='SF' ):
+        for i in tqdm( list( range( num_iterations ) ), desc=' SF' ):
             self._ModHatProject()
             self._ModProject()
             self._UpdateError()
@@ -132,7 +151,10 @@ class Phaser:
 
 # Basic shrinkwrap with gaussian blurring
     def ShrinkWrap( self, sigma, thresh ):
-        result = gaussian_filter( np.absolute( self._cImage ), sigma, mode='constant', cval=0. )
+        result = gaussian_filter( 
+            np.absolute( self._cImage ), 
+            sigma, mode='constant', cval=0.
+        )
         self._support = ( result > thresh*result.max() ).astype( float )
         self._support_comp = 1. - self._support
         return
@@ -140,7 +162,9 @@ class Phaser:
 # The projection operator into the modulus space of the FFT.
 # This is a highly nonlinear operator.
     def _ModProject( self ):
-        self._cImage = ifftn( self._modulus * np.exp( 1j * np.angle( fftn( self._cImage ) ) ) )
+        self._cImage = ifftn( 
+            self._modulus * np.exp( 1j * np.angle( fftn( self._cImage ) ) ) 
+        )
         return
 
 # The reflection operator in the plane of the (linear)
@@ -158,4 +182,14 @@ class Phaser:
         self._ModProject()
         self._SupReflect()
         return
+
+# Generates a package for the GPU module to read and generate tensors.
+    def generateGPUPackage( self ):
+        mydict = { 
+            'modulus':self._modulus, 
+            'support':self._support, 
+            'beta':self._beta, 
+            'cImage':self._cImage
+        }
+        return mydict
 

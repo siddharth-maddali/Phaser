@@ -57,7 +57,7 @@ class ScatteringGeometry:
         self._kf = misc.Delta( self._delta ) @ misc.Gamma( self._gamma ) @ self._ki         # scattered wave vector (3x1)
         self._Ghat = self._kf - self._ki
         self._Ghkl = ( self._Ghat / np.linalg.norm( self._Ghat ) ) * ( 
-            2.*np.pi*np.linalg.norm( self._peak ) / self._a0
+            2. * np.pi * np.linalg.norm( self._peak ) / self._a0
         ) # this is the 3x1 reciprocal lattice vector Ghkl around whith the diffraction pattern is centered
 
 
@@ -85,17 +85,11 @@ class ScatteringGeometry:
             # The columns of this matrix are the sampling steps in 3 independent directions in reciprocal space.
             # Two of these are perpendicular (i.e. detector plane) while the third is the rocking direction.
 
-        self._Bscope = self._Brecip * self._recip.repeat( 3, axis=0 )
-            # The columns of this matrix define a parallelopiped denoting the volume in reciprocal space
-            # queried during the entire scan.
+        Brange = np.diag( 1. / self._recip.ravel() )
 
-        self._Breal = ( 2. * np.pi / np.linalg.det( self._Bscope ) ) * np.cross( 
-            np.roll( self._Bscope, -1, axis=1 ), 
-            np.roll( self._Bscope, -2, axis=1 ), 
-            axisa=0, axisb=0
-        )
+        self._Breal = 2. * np.pi *\
+            np.linalg.inv( self._Brecip ).T @ Brange
             # The columns of this matrix are the sampling directions in 3D real space.
-            # Can also be computed as  2. * np.pi * np.linalg.inv( self._Brecip.T ).
 
         self._Brecip    *= 1.e-9    # scaling to nm^-1 units
         self._Breal     *= 1.e+9    # scaling to nm units
