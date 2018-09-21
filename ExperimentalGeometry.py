@@ -57,7 +57,7 @@ class ScatteringGeometry:
         self._kf = misc.Delta( self._delta ) @ misc.Gamma( self._gamma ) @ self._ki         # scattered wave vector (3x1)
         self._Ghat = self._kf - self._ki
         self._Ghkl = ( self._Ghat / np.linalg.norm( self._Ghat ) ) * ( 
-            2. * np.pi * np.linalg.norm( self._peak ) / self._a0
+            np.linalg.norm( self._peak ) / self._a0
         ) # this is the 3x1 reciprocal lattice vector Ghkl around whith the diffraction pattern is centered
 
 
@@ -75,7 +75,7 @@ class ScatteringGeometry:
         self._dq = ( self._Mtheta( self._dtheta ) @ self._Ghkl ) - self._Ghkl   
             # this is the 3x1 step in reciprocal space along the rocking curve
 
-        detXY = 2. * np.pi * self._pix / ( self._lambda * self._arm ) *\
+        detXY = self._pix / ( self._lambda * self._arm ) *\
             misc.Delta( self._delta ) @\
             misc.Gamma( self._gamma ) @\
             np.array( [ [ 1., 0., 0. ], [ 0., 1., 0. ] ] ).T
@@ -87,8 +87,7 @@ class ScatteringGeometry:
 
         Brange = np.diag( 1. / self._recip.ravel() )
 
-        self._Breal = 2. * np.pi *\
-            np.linalg.inv( self._Brecip ).T @ Brange
+        self._Breal = np.linalg.inv( self._Brecip ).T @ Brange
             # The columns of this matrix are the sampling directions in 3D real space.
 
         self._Brecip    *= 1.e-9    # scaling to nm^-1 units

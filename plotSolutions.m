@@ -19,10 +19,13 @@ axis on;
 grid on; 
 view( 3 ); 
 axis image;
-alpha( 0.75 ); 
-hold on;
-q = quiver3( [ 0 0 0 ], [ 0 0 0 ], [ 0 0 0 ], Breal(1,:), Breal(2,:), Breal(3,:), 10, 'r', 'LineWidth', 2 );
+% alpha( 0.75 ); 
+% hold on;
+% q = quiver3( [ 0 0 0 ], [ 0 0 0 ], [ 0 0 0 ], Breal(1,:), Breal(2,:), Breal(3,:), 10, 'r', 'LineWidth', 2 );
 title( '$\rho (\mathbf{x})$', 'interpreter', 'latex' );
+xlabel( 'nm', 'FontSize', 20 );
+ylabel( 'nm', 'FontSize', 20 );
+zlabel( 'nm', 'FontSize', 20 );
 
 s2 = subplot( 1, 2, 2 ); 
 plotObjectTwin( img, 4e-3, Breal ); 
@@ -32,10 +35,13 @@ axis on;
 grid on; 
 view( 3 ); 
 axis image;
-alpha( 0.75 ); 
-hold on;
-q = quiver3( [ 0 0 0 ], [ 0 0 0 ], [ 0 0 0 ], Breal(1,:), Breal(2,:), Breal(3,:), 10, 'r', 'LineWidth', 2 );
+% alpha( 0.75 ); 
+% hold on;
+% q = quiver3( [ 0 0 0 ], [ 0 0 0 ], [ 0 0 0 ], Breal(1,:), Breal(2,:), Breal(3,:), 10, 'r', 'LineWidth', 2 );
 title( '$\rho^*(-\mathbf{x})$', 'interpreter', 'latex' );
+xlabel( 'nm', 'FontSize', 20 );
+ylabel( 'nm', 'FontSize', 20 );
+zlabel( 'nm', 'FontSize', 20 );
 
 linkprop( [ s1 s2 ], { ...
 'CameraPosition', ...
