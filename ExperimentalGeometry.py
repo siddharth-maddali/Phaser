@@ -28,10 +28,9 @@ class ScatteringGeometry:
         lam=1.3785e-10,                      # wavelength, meters, corresponding to 9 keV
         pix=55.e-6,                         # detector pixel size, meters
         arm=0.65,                           # sample-detector distance, meters
-        a0= 4.078e-10,                      # lattice constant, meters
-        peak= [ 1, 1, 1 ],                  # Bragg peak of interest
         gamma=45.,                          # degrees
         delta=25.,                          # degrees
+        phi=-4.96,                          # degrees
         dtheta=0.01,                        # degrees (this becomes the step in phi if delta = 0).
         recipSpaceSteps=[ 256, 256, 70 ]    # data array size
 
@@ -48,31 +47,25 @@ class ScatteringGeometry:
         self._lambda = lam
         self._pix = pix
         self._arm = arm
-        self._a0 = a0
-        self._peak = np.array( peak ).astype( float )
         self._delta = delta * np.pi / 180.
         self._gamma = gamma * np.pi / 180.
+        self._phi = phi * np.pi / 180.
 
-        self._ki = np.array( [ 0., 0., 1. ] ).reshape( -1, 1 )                              # incident unit vector  (3x1)    
+        self._ki = ( 1. / self._lambda ) * np.array( [ 0., 0., 1. ] ).reshape( -1, 1 )     # incident unit vector  (3x1)    
         self._kf = misc.Delta( self._delta ) @ misc.Gamma( self._gamma ) @ self._ki         # scattered wave vector (3x1)
-        self._Ghat = self._kf - self._ki
-        self._Ghkl = ( self._Ghat / np.linalg.norm( self._Ghat ) ) * ( 
-            np.linalg.norm( self._peak ) / self._a0
-        ) # this is the 3x1 reciprocal lattice vector Ghkl around whith the diffraction pattern is centered
+        self._Q = self._kf - self._ki;
 
 
         self._dtheta = dtheta * np.pi / 180.
         self._recip = np.array( recipSpaceSteps ).reshape( 1, -1 )
-        self._theta = np.arcsin( self._lambda * np.linalg.norm( self._peak ) / ( 2. * self._a0 ) )
-        self._twotheta = 2. * self._theta
-
 
         if self._delta == 0.:   # scattering in the straight-up direction; phi motor is being rocked
             self._Mtheta = misc.Gamma
         else:                   # scattering off to the side; theta motor is being rocked
             self._Mtheta = misc.Delta
-
-        self._dq = ( self._Mtheta( self._dtheta ) @ self._Ghkl ) - self._Ghkl   
+        
+        Qtransform = misc.Gamma( -self._phi ) @ self._Mtheta( self._dtheta ) @ misc.Gamma( -self._phi ).T
+        self._dq = ( Qtransform @ self._Q ) - self._Q   
             # this is the 3x1 step in reciprocal space along the rocking curve
 
         detXY = self._pix / ( self._lambda * self._arm ) *\

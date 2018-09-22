@@ -50,7 +50,7 @@ function [ x, y, z ] = plotObjectStraight( rhoPhased, isoval, varargin )
 %     iso.vertices = ( skew * ( iso.vertices )' )';
 
     patch( iso, 'FaceColor', 'interp', 'EdgeColor', 'none' );
-%     axis image;
+    axis image;
 %     axis off;
     grid on;
     colormap( 'parula' );
