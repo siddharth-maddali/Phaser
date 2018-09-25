@@ -55,7 +55,7 @@ class ScatteringGeometry:
 
 
         self._dtheta = dtheta * np.pi / 180.
-        self._recip = np.array( recipSpaceSteps ).reshape( 1, -1 )
+        self._recip = np.array( recipSpaceSteps ).astype( float ).reshape( 1, -1 )
 
         if self._delta == 0.:   # scattering in the straight-up direction; phi motor is being rocked
             self._Mtheta = misc.Gamma
