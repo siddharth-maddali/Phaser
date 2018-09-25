@@ -30,7 +30,6 @@ class ScatteringGeometry:
         arm=0.65,                           # sample-detector distance, meters
         gamma=45.,                          # degrees
         delta=25.,                          # degrees
-        phi=-4.96,                          # degrees
         dtheta=0.01,                        # degrees (this becomes the step in phi if delta = 0).
         recipSpaceSteps=[ 256, 256, 70 ]    # data array size
 
@@ -49,11 +48,10 @@ class ScatteringGeometry:
         self._arm = arm
         self._delta = delta * np.pi / 180.
         self._gamma = gamma * np.pi / 180.
-        self._phi = phi * np.pi / 180.
 
         self._ki = ( 1. / self._lambda ) * np.array( [ 0., 0., 1. ] ).reshape( -1, 1 )     # incident unit vector  (3x1)    
         self._kf = misc.Delta( self._delta ) @ misc.Gamma( self._gamma ) @ self._ki         # scattered wave vector (3x1)
-        self._Q = self._kf - self._ki;
+        self._Q = self._kf - self._ki
 
 
         self._dtheta = dtheta * np.pi / 180.
@@ -64,8 +62,7 @@ class ScatteringGeometry:
         else:                   # scattering off to the side; theta motor is being rocked
             self._Mtheta = misc.Delta
         
-        Qtransform = misc.Gamma( -self._phi ) @ self._Mtheta( self._dtheta ) @ misc.Gamma( -self._phi ).T
-        self._dq = ( Qtransform @ self._Q ) - self._Q   
+        self._dq = ( self._Mtheta @ self._Q ) - self._Q   
             # this is the 3x1 step in reciprocal space along the rocking curve
 
         detXY = self._pix / ( self._lambda * self._arm ) *\
