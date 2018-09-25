@@ -62,7 +62,7 @@ class ScatteringGeometry:
         else:                   # scattering off to the side; theta motor is being rocked
             self._Mtheta = misc.Delta
         
-        self._dq = ( self._Mtheta @ self._Q ) - self._Q   
+        self._dq = ( self._Mtheta( self._dtheta ) @ self._Q ) - self._Q   
             # this is the 3x1 step in reciprocal space along the rocking curve
 
         detXY = self._pix / ( self._lambda * self._arm ) *\
