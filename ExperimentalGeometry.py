@@ -63,7 +63,8 @@ class ScatteringGeometry:
             self._Mtheta = misc.Delta
         
         self._dq = ( self._Mtheta( self._dtheta ) @ self._Q ) - self._Q   
-            # this is the 3x1 step in reciprocal space along the rocking curve
+            # this is the 3x1 direction of changing Q.
+            # Also, the NEGATIVE of the detector translation step.
 
         detXY = self._pix / ( self._lambda * self._arm ) *\
             misc.Delta( self._delta ) @\
@@ -71,7 +72,7 @@ class ScatteringGeometry:
             np.array( [ [ 1., 0., 0. ], [ 0., 1., 0. ] ] ).T
             # the columns of this matrix are the reciprocal space steps in the detector x and y directions.
 
-        self._Brecip = np.concatenate( ( detXY, self._dq ), axis=1 ) 
+        self._Brecip = np.concatenate( ( detXY, -1.*self._dq ), axis=1 ) 
             # The columns of this matrix are the sampling steps in 3 independent directions in reciprocal space.
             # Two of these are perpendicular (i.e. detector plane) while the third is the rocking direction.
 
