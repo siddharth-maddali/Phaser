@@ -18,6 +18,13 @@ class Mixin:
     def defineSymbolicOps( self, varDict ):
         
         with tf.device( '/gpu:0' ):
+            with tf.name_scope( 'FFT' ):
+                self._getIntermediateFFT = tf.assign( 
+                    self._intermedFFT, 
+                    tf.fft3d( self._cImage ), 
+                    name='intermedFFT'
+                )
+
             if 'bin_left' in varDict.keys():
                 with tf.name_scope( 'highEnergy' ):
                     self._getIntermediateFFT = tf.assign( 
@@ -80,8 +87,10 @@ class Mixin:
                         tf.ifft3d( 
                                 self._modulus *\
                                 tf.exp( tf.complex( 
-                                    tf.zeros( self._cImage.shape ), tf.angle( tf.fft3d( self._cImage ) ) 
-                                ) )
+                                    tf.zeros( self._cImage.shape ), 
+                                    tf.angle( self._intermedFFT ) 
+                                ) 
+                            )
                         ), 
                         name='modProject' 
                     )

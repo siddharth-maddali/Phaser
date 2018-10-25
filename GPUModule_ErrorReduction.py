@@ -17,8 +17,10 @@ class Mixin:
 ###########################################################################################
     def ER( self, num_iterations ):
         for n in list( range( num_iterations ) ):
+            self.__sess__.run( self._getIntermediateFFT )
             self.__sess__.run( self._modproject )
             self.__sess__.run( self._supproject )
+            self.updateError()
         return
 
 ###########################################################################################

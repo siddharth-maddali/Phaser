@@ -12,6 +12,7 @@ import time
 # Class 'Solver' inherits methods from the mixins defined in the following modules.
 import GPUModule_MemberVariables, GPUModule_SymbolicOps, GPUModule_InitializeSession
 import GPUModule_ErrorReduction, GPUModule_HybridInputOutput, GPUModule_ShrinkWrap
+import GPUModule_ObjectiveFunction
 
 class Solver( 
         GPUModule_MemberVariables.Mixin, 
@@ -27,11 +28,13 @@ class Solver(
         self.log_directory = outlog     # directory for computational graph dump
         self.defineMemberVariables( varDict )
         self.defineSymbolicOps( varDict )
+        self.initializeObjectiveFunction()
         self.initializeSession()
 
     def Compute( self ):
         self.finalImage = self._cImage.eval( session=self.__sess__ )
         self.finalSupport = np.absolute( self._support.eval( session=self.__sess__ ) )
+        self.errorTrend = self._error.eval( session=self.__sess__ )[:self.__iterations]
         self.__sess__.close()
         return
 

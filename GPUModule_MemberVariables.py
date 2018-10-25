@@ -50,6 +50,7 @@ class Mixin:
             self._kernelFFT = tf.Variable( varDict[ 'support' ], dtype=tf.complex64, name='kernelFFT' )
             self._blurred = tf.Variable( varDict[ 'support' ], dtype=tf.float32, name='blurred' )
             self._dist = tf.Variable( tf.zeros( self._x.shape, dtype=tf.float32 ), name='dist' )
+            self._intermedFFT = tf.Variable( tf.zeros( self._cImage.shape, dtype=tf.complex64 ), name='intermedFFT' )
 
             # This is executed only if high-energy phasing is required.
             if 'bin_left' in varDict.keys():
@@ -69,5 +70,5 @@ class Mixin:
                 self._binned = tf.Variable( tf.zeros( self._modulus.shape, dtype=tf.complex64 ), name='binned' )
                 self._expanded = tf.Variable( tf.zeros( self._support.shape, dtype=tf.complex64 ), name='expanded' )
                 self._scaled = tf.Variable( tf.zeros( self._modulus.shape, dtype=tf.complex64 ), name='scaled' )
-                self._intermedFFT = tf.Variable( tf.zeros( self._cImage.shape, dtype=tf.complex64 ), name='intermedFFT' )
+
         return
