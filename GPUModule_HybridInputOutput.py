@@ -10,16 +10,23 @@
 #
 ##############################################################
 
+from tqdm import tqdm
+
 class Mixin:
 ###########################################################################################
 #   Performs <num_iterations> iterations of of hybrid input/output
 ###########################################################################################
-    def HIO( self, num_iterations ):
-        for n in list( range( num_iterations ) ):
+    def HIO( self, num_iterations, show_progress=False ):
+        if show_progress:
+            allIterations = tqdm( list( range( num_iterations ) ), desc='HIO' )
+        else:
+            allIterations = list( range( num_iterations ) )
+        for n in allIterations:
             self.__sess__.run( self._dumpimage )
             self.__sess__.run( self._getIntermediateFFT )
             self.__sess__.run( self._modproject )
             self.__sess__.run( self._disrupt )
+            self.updateErrorGPU()
         return
 
 ###########################################################################################

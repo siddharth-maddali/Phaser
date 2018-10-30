@@ -27,11 +27,6 @@ class Mixin:
 
             if 'bin_left' in varDict.keys():
                 with tf.name_scope( 'highEnergy' ):
-                    self._getIntermediateFFT = tf.assign( 
-                        self._intermedFFT, 
-                        tf.fft3d( self._cImage ), 
-                        name='intermedFFT'
-                    )
                     self._binThis = tf.assign( 
                         self._binned, 
                         tf.transpose( 

@@ -11,45 +11,34 @@
 #
 ##############################################################
 
+import tensorflow as tf
+
 class Mixin:
 
 ##############################################################
 #   Initializes objective function routine.
-#   block_size is how much the error array grows in GPU 
-#   memory each time it fills up.
 ##############################################################
-    def initializeObjectiveFunction( block_size=500 ):
-        self.__block_size = block_size
-        self.__iterations = 0
-        self._error = tf.Variable( 
-            np.zeros( self.__block_size ), 
-            dtype=tf.float32, 
-            name='objFunc' 
-        )
-        return
-
-    def updateError():
-        if self.__iterations % self.__block_size == 0:
-            self.__sess__.run( 
-                tf.assign( 
-                    self._error, 
-                    np.concatenate( 
-                        ( 
-                            self._error.eval( session=self.__sess__ ), 
-                            np.zeros( self.__block_size )
-                        )
-                    ), 
-                    validate_shape=False
+    def initializeObjectiveFunction( self ):
+        self.errorMetric = []
+        with tf.name_scope( 'Error' ):
+            self._error = tf.Variable( 0., dtype=tf.float32, name='objFunc' )
+            self._getErrorNow = tf.assign( 
+                self._error, 
+                tf.reduce_sum( 
+                    tf.square( 
+                        tf.abs( self._modulus ) - tf.abs( self._intermedFFT )
+                    )
                 )
             )
-        self.__sess__.run(
-            tf.assign( 
-                self._error[ self.__iterations ], 
-                tf.reduce_sum( tf.square( ( self._modulus - tf.abs( self._intermedFFT ) ) ) )
+        return
 
-            )
-        )
-        self.__iterations = self.__iterations + 1
+##############################################################
+#   Updates error and adds new element to 
+##############################################################
+    def updateErrorGPU( self ):
+        self.__sess__.run( self._getErrorNow )
+        self.errorMetric.append( self._error.eval( session=self.__sess__ ) )
+                        # this has a lot of overhead.
         return
 
 

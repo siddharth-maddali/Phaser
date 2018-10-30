@@ -10,17 +10,23 @@
 #
 ##############################################################
 
+from tqdm import tqdm
+
 class Mixin:
 
 ###########################################################################################
 #   Performs <num_iterations> iterations of error reduction
 ###########################################################################################
-    def ER( self, num_iterations ):
-        for n in list( range( num_iterations ) ):
+    def ER( self, num_iterations, show_progress=False ):
+        if show_progress:
+            allIterations = tqdm( list( range( num_iterations ) ), desc=' ER' )
+        else:
+            allIterations = list( range( num_iterations ) )
+        for n in allIterations:
             self.__sess__.run( self._getIntermediateFFT )
             self.__sess__.run( self._modproject )
             self.__sess__.run( self._supproject )
-            self.updateError()
+            self.updateErrorGPU()
         return
 
 ###########################################################################################
