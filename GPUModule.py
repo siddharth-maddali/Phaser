@@ -14,6 +14,7 @@ import PostProcessing as post
 # Class 'Solver' inherits methods from the mixins defined in the following modules.
 import GPUModule_MemberVariables, GPUModule_SymbolicOps, GPUModule_InitializeSession
 import GPUModule_ErrorReduction, GPUModule_HybridInputOutput, GPUModule_ShrinkWrap
+import GPUModule_SolventFlipping
 import GPUModule_ObjectiveFunction
 
 class Solver( 
@@ -23,6 +24,7 @@ class Solver(
         GPUModule_ErrorReduction.Mixin, 
         GPUModule_HybridInputOutput.Mixin, 
         GPUModule_ShrinkWrap.Mixin, 
+        GPUModule_SolventFlipping.Mixin,
         GPUModule_ObjectiveFunction.Mixin
     ):
     
@@ -32,6 +34,7 @@ class Solver(
         self.defineMemberVariables( varDict )
         self.defineSymbolicOps( varDict )
         self.initializeObjectiveFunction()
+        self.initializeSF()
         self.initializeSession()
 
     def Compute( self ):
