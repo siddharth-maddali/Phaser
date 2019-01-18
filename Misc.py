@@ -18,3 +18,12 @@ def Delta( delt ):
             [ -np.sin( delt ), 0., np.cos( delt )]
         ]
     )
+
+def Chi( chi ):
+    return np.array( 
+        [
+            [  np.cos( chi ), -np.sin( chi ), 0. ], 
+            [  np.sin( chi ),  np.cos( chi ), 0. ],
+            [ 0., 0., 1. ] 
+        ]
+    )
