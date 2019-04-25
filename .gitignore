@@ -1,7 +1,7 @@
 *.fig
 __pycache__/*
-*.mat
 *.fig
+phasingResult-2.mat
 *.html
 .ipynb_checkpoints/*
 .*.*.swp
