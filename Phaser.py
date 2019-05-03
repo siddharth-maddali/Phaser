@@ -41,6 +41,7 @@ from pyfftw.interfaces.numpy_fft import fftshift, fftn, ifftn
 from scipy.ndimage.filters import gaussian_filter
 from tqdm import tqdm
 
+import PostProcessing as post
 import GPUModule as accelerator
 
 
@@ -94,13 +95,13 @@ class Phaser:
             self._error = []
         return
 
-# Reader function for the retrieved image
-    def finalImage( self ):
-        return self._cImage
-
-# Reader function for estimated support
-    def finalSupport( self ):
-        return self._support
+## Reader function for the retrieved image
+#    def finalImage( self ):
+#        return self._cImage
+#
+## Reader function for estimated support
+#    def finalSupport( self ):
+#        return self._support
 
 # Reader function for the final computed modulus
     def Modulus( self ):
@@ -181,6 +182,15 @@ class Phaser:
         self._SupReflect()
         self._ModProject()
         self._SupReflect()
+        return
+
+# The alignment oeprator that centers the object after phase retrieval.
+    def Retrieve():
+        self.finalImage = self._cImage
+        self.finalSupport = self._support
+        self.finalImage, self.finalSupport = post.centerObject( 
+            self.finalImage, self.finalSupport
+        )
         return
 
 # Generates a package for the GPU module to read and generate tensors.

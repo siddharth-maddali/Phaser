@@ -37,7 +37,7 @@ class Solver(
         self.initializeSF()
         self.initializeSession()
 
-    def Compute( self ):
+    def Retrieve( self ):
         self.finalImage = self._cImage.eval( session=self.__sess__ )
         self.finalSupport = np.absolute( self._support.eval( session=self.__sess__ ) )
         self.finalImage, self.finalSupport = post.centerObject( 

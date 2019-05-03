@@ -15,7 +15,8 @@ def centerObject( img, sup ):
     supC = sup.copy()
     span = np.where( supC > 0.5 )
     for n in list( range( len( span ) ) ):
-        if 1+span[n].max()-span[n].min()==supC.shape[n]: # i.e. obj split across periodic bnd
+        if 1+span[n].max()-span[n].min()==supC.shape[n]: 
+                # i.e. obj split across periodic boundary
             imgC = np.roll( imgC, imgC.shape[n]//2, axis=n )
             supC = np.roll( supC, supC.shape[n]//2, axis=n )
 #    span = np.where( supC > 0.5 )

@@ -199,25 +199,14 @@ for sig in sigma:                   #
      ER: 100%|██████████| 90/90 [00:19<00:00,  4.65it/s]
 
 
-## Extracting image and support from black box
+## Extracting image and support from black box `PR`
 
 
 ```python
-img = PR.finalImage()
-sup = PR.finalSupport()
+PR.Retrieve()	# centers object in array
+img = PR.finalImage
+sup = PR.finalSupport
 ```
-
-## Centering object that may have strayed from center of the array
-
-
-```python
-# centering object that may have strayed from center of array
-maxHere = [ n[0] for n in np.where( np.absolute( img ) ==np.absolute( img ).max() ) ]
-for n in [ 0, 1, 2 ]:
-    img = np.roll( img, img.shape[n]//2-maxHere[n], axis=n )
-    sup = np.roll( sup, img.shape[n]//2-maxHere[n], axis=n )
-```
-
 
 ## Scatterer amplitude
 <img src="images/scattererAmp.jpg">
@@ -325,13 +314,9 @@ for sig in tqdm( sigma, desc=' ER' ):
 
 
 ```python
-PR2.Compute()
+PR2.Retrieve() # centers object in array
 img2 = PR2.finalImage
 sup2 = PR2.finalSupport
-
-# note that manual centering of the object in the array is
-# not necessary, this is already done in the Compute() 
-# routine within the GPU module.
 ```
 
 
