@@ -64,10 +64,6 @@ from matplotlib.colors import LogNorm
 import scipy.io as sio
 ```
 
-    /home/smaddali/tensorflow/lib/python3.5/site-packages/h5py/__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
-      from ._conv import register_converters as _register_converters
-
-
 
 ```python
 # this has no effect in the iPython shell, to be used in the Jupyter notebook only.
@@ -87,7 +83,7 @@ data = dataset[ 'data' ] # the 3D data is now a numpy array.
 print( 'Array size = ', data.shape )
 ```
 
-    dict_keys(['__version__', '__header__', 'data', '__globals__'])
+    dict_keys(['__version__', '__header__', '__globals__', 'data'])
     Array size =  (128, 128, 70)
 
 
@@ -185,22 +181,22 @@ for sig in sigma:                   #
     PR.ShrinkWrap( sig, 0.1 )       #  shrinkwrap every 90 iterations.
 ```
 
-     ER: 100%|██████████| 30/30 [00:07<00:00,  4.19it/s]
-     ER: 100%|██████████| 30/30 [00:06<00:00,  4.31it/s]
-     ER: 100%|██████████| 30/30 [00:06<00:00,  4.31it/s]
-     ER: 100%|██████████| 30/30 [00:06<00:00,  4.34it/s]
-     ER: 100%|██████████| 30/30 [00:06<00:00,  4.38it/s]
-    HIO: 100%|██████████| 300/300 [01:07<00:00,  4.42it/s]
-     SF: 100%|██████████| 25/25 [00:09<00:00,  2.61it/s]
-     SF: 100%|██████████| 25/25 [00:09<00:00,  2.62it/s]
-     SF: 100%|██████████| 25/25 [00:09<00:00,  2.58it/s]
-     SF: 100%|██████████| 25/25 [00:09<00:00,  2.58it/s]
-    HIO: 100%|██████████| 300/300 [01:07<00:00,  4.44it/s]
-     ER: 100%|██████████| 90/90 [00:19<00:00,  4.53it/s]
-     ER: 100%|██████████| 90/90 [00:20<00:00,  4.49it/s]
-     ER: 100%|██████████| 90/90 [00:19<00:00,  4.51it/s]
-     ER: 100%|██████████| 90/90 [00:19<00:00,  4.53it/s]
-     ER: 100%|██████████| 90/90 [00:20<00:00,  4.50it/s]
+     ER: 100%|██████████| 30/30 [00:07<00:00,  4.02it/s]
+     ER: 100%|██████████| 30/30 [00:06<00:00,  4.30it/s]
+     ER: 100%|██████████| 30/30 [00:07<00:00,  4.28it/s]
+     ER: 100%|██████████| 30/30 [00:07<00:00,  4.24it/s]
+     ER: 100%|██████████| 30/30 [00:07<00:00,  4.25it/s]
+    HIO: 100%|██████████| 300/300 [01:15<00:00,  3.99it/s]
+     SF: 100%|██████████| 25/25 [00:11<00:00,  2.18it/s]
+     SF: 100%|██████████| 25/25 [00:11<00:00,  2.18it/s]
+     SF: 100%|██████████| 25/25 [00:11<00:00,  2.23it/s]
+     SF: 100%|██████████| 25/25 [00:12<00:00,  2.02it/s]
+    HIO: 100%|██████████| 300/300 [01:16<00:00,  3.94it/s]
+     ER: 100%|██████████| 90/90 [00:20<00:00,  4.30it/s]
+     ER: 100%|██████████| 90/90 [00:20<00:00,  4.38it/s]
+     ER: 100%|██████████| 90/90 [00:22<00:00,  4.05it/s]
+     ER: 100%|██████████| 90/90 [00:21<00:00,  4.14it/s]
+     ER: 100%|██████████| 90/90 [00:22<00:00,  4.07it/s]
 
 
 ## Extracting image and support from black box
@@ -211,6 +207,8 @@ PR.Retrieve() # centers the compact object in array
 img = PR.finalImage
 sup = PR.finalSupport
 ```
+
+
 ## Scatterer amplitude
 <img src="images/scattererAmp.jpg">
 
@@ -306,11 +304,11 @@ for sig in tqdm( sigma, desc=' ER' ):
     PR2.Shrinkwrap( sig, 0.1 )          #  shrinkwrap every 90 iterations.
 ```
 
-     ER: 100%|██████████| 5/5 [00:05<00:00,  1.14s/it]
-    HIO: 100%|██████████| 300/300 [00:11<00:00, 25.29it/s]
-     SF: 100%|██████████| 4/4 [00:05<00:00,  1.29s/it]
-    HIO: 100%|██████████| 300/300 [00:11<00:00, 25.38it/s]
-     ER: 100%|██████████| 5/5 [00:14<00:00,  2.86s/it]
+     ER: 100%|██████████| 5/5 [00:06<00:00,  1.22s/it]
+    HIO: 100%|██████████| 300/300 [00:13<00:00, 22.12it/s]
+     SF: 100%|██████████| 4/4 [00:05<00:00,  1.38s/it]
+    HIO: 100%|██████████| 300/300 [00:12<00:00, 23.48it/s]
+     ER: 100%|██████████| 5/5 [00:16<00:00,  3.32s/it]
 
 
 ## Extracting image and support from black box `PR2`
@@ -322,12 +320,12 @@ img2 = PR2.finalImage
 sup2 = PR2.finalSupport
 
 # note that manual centering of the object in the array is
-# not necessary, this is already done in the Retrieve() 
+# not necessary, this is already done in the Compute() 
 # routine within the GPU module.
 ```
 
 
-## Scatterer amplitude
+<h2>Scatterer amplitude</h2>
 
 <img src="images/scattererAmp_gpu.jpg">
 
