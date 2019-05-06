@@ -8,7 +8,7 @@
 ### This presentation, along with the Python modules, is available at:<br/>
 https://github.com/siddharth-maddali/Phaser
 
-## Introduction
+   ## Introduction
    - Basic Python tutorial of module `Phaser` for BCDI phase retrieval.
 
    - For data from Beamline 34-ID
@@ -64,6 +64,10 @@ from matplotlib.colors import LogNorm
 import scipy.io as sio
 ```
 
+    /home/smaddali/tensorflow/lib/python3.5/site-packages/h5py/__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+      from ._conv import register_converters as _register_converters
+
+
 
 ```python
 # this has no effect in the iPython shell, to be used in the Jupyter notebook only.
@@ -83,7 +87,7 @@ data = dataset[ 'data' ] # the 3D data is now a numpy array.
 print( 'Array size = ', data.shape )
 ```
 
-    dict_keys(['__version__', '__globals__', 'data', '__header__'])
+    dict_keys(['__version__', '__header__', 'data', '__globals__'])
     Array size =  (128, 128, 70)
 
 
@@ -181,35 +185,35 @@ for sig in sigma:                   #
     PR.ShrinkWrap( sig, 0.1 )       #  shrinkwrap every 90 iterations.
 ```
 
-     ER: 100%|██████████| 30/30 [00:06<00:00,  4.43it/s]
-     ER: 100%|██████████| 30/30 [00:06<00:00,  4.66it/s]
-     ER: 100%|██████████| 30/30 [00:06<00:00,  4.65it/s]
-     ER: 100%|██████████| 30/30 [00:06<00:00,  4.65it/s]
-     ER: 100%|██████████| 30/30 [00:06<00:00,  4.66it/s]
-    HIO: 100%|██████████| 300/300 [01:09<00:00,  4.32it/s]
-     SF: 100%|██████████| 25/25 [00:10<00:00,  2.33it/s]
-     SF: 100%|██████████| 25/25 [00:10<00:00,  2.38it/s]
-     SF: 100%|██████████| 25/25 [00:10<00:00,  2.34it/s]
-     SF: 100%|██████████| 25/25 [00:10<00:00,  2.37it/s]
-    HIO: 100%|██████████| 300/300 [01:09<00:00,  4.33it/s]
-     ER: 100%|██████████| 90/90 [00:19<00:00,  4.69it/s]
-     ER: 100%|██████████| 90/90 [00:19<00:00,  4.69it/s]
-     ER: 100%|██████████| 90/90 [00:19<00:00,  4.70it/s]
-     ER: 100%|██████████| 90/90 [00:19<00:00,  4.67it/s]
-     ER: 100%|██████████| 90/90 [00:19<00:00,  4.65it/s]
+     ER: 100%|██████████| 30/30 [00:07<00:00,  4.19it/s]
+     ER: 100%|██████████| 30/30 [00:06<00:00,  4.31it/s]
+     ER: 100%|██████████| 30/30 [00:06<00:00,  4.31it/s]
+     ER: 100%|██████████| 30/30 [00:06<00:00,  4.34it/s]
+     ER: 100%|██████████| 30/30 [00:06<00:00,  4.38it/s]
+    HIO: 100%|██████████| 300/300 [01:07<00:00,  4.42it/s]
+     SF: 100%|██████████| 25/25 [00:09<00:00,  2.61it/s]
+     SF: 100%|██████████| 25/25 [00:09<00:00,  2.62it/s]
+     SF: 100%|██████████| 25/25 [00:09<00:00,  2.58it/s]
+     SF: 100%|██████████| 25/25 [00:09<00:00,  2.58it/s]
+    HIO: 100%|██████████| 300/300 [01:07<00:00,  4.44it/s]
+     ER: 100%|██████████| 90/90 [00:19<00:00,  4.53it/s]
+     ER: 100%|██████████| 90/90 [00:20<00:00,  4.49it/s]
+     ER: 100%|██████████| 90/90 [00:19<00:00,  4.51it/s]
+     ER: 100%|██████████| 90/90 [00:19<00:00,  4.53it/s]
+     ER: 100%|██████████| 90/90 [00:20<00:00,  4.50it/s]
 
 
-## Extracting image and support from black box `PR`
+## Extracting image and support from black box
 
 
 ```python
-PR.Retrieve()	# centers object in array
+PR.Retrieve() # centers the compact object in array
 img = PR.finalImage
 sup = PR.finalSupport
 ```
-
 ## Scatterer amplitude
 <img src="images/scattererAmp.jpg">
+
 
 ## Scatterer support
 <img src="images/scattererSup.jpg">
@@ -275,8 +279,7 @@ PR2 = ph.Phaser(
 ## Similar recipe for GPU phase retrieval
    - 150 iterations of error reduction (ER), with support-updating every 30 iterations
    - 300 iterations of hybrid input-output (HIO)
-   - 100 iterations of error reduction (ER) with support-update every 25 iterations
-       - (__note that currently there is no solvent flipping implementation in the GPU module__)
+   - 100 iterations of solvent flipping (SF) with support-update every 25 iterations
    - 300 iterations of hybrid input-output (HIO)
    - 450 iterations of ER again, with support-updating every 90 iterations
 
@@ -291,8 +294,8 @@ for sig in tqdm( sigma, desc=' ER' ):
 PR2.HIO( 300, show_progress=True )      #  300 iterations of hybrid I/O
 
 sigma = np.linspace( 3., 2., 4 )
-for sig in tqdm( sigma, desc=' ER' ):                       
-    PR2.ER( 25 )                        #  100 iterations of error reduction, 
+for sig in tqdm( sigma, desc=' SF' ):                       
+    PR2.SF( 25 )                        #  100 iterations of solvent flipping, 
     PR2.Shrinkwrap( sig, 0.1 )          #  shrinkwrap every 25 iterations.
     
 PR2.HIO( 300, show_progress=True )      #  300 iterations of hybrid I/O
@@ -303,20 +306,24 @@ for sig in tqdm( sigma, desc=' ER' ):
     PR2.Shrinkwrap( sig, 0.1 )          #  shrinkwrap every 90 iterations.
 ```
 
-     ER: 100%|██████████| 5/5 [00:05<00:00,  1.11s/it]
-    HIO: 100%|██████████| 300/300 [00:11<00:00, 25.71it/s]
-     ER: 100%|██████████| 4/4 [00:03<00:00,  1.24it/s]
-    HIO: 100%|██████████| 300/300 [00:11<00:00, 25.86it/s]
-     ER: 100%|██████████| 5/5 [00:13<00:00,  2.78s/it]
+     ER: 100%|██████████| 5/5 [00:05<00:00,  1.14s/it]
+    HIO: 100%|██████████| 300/300 [00:11<00:00, 25.29it/s]
+     SF: 100%|██████████| 4/4 [00:05<00:00,  1.29s/it]
+    HIO: 100%|██████████| 300/300 [00:11<00:00, 25.38it/s]
+     ER: 100%|██████████| 5/5 [00:14<00:00,  2.86s/it]
 
 
 ## Extracting image and support from black box `PR2`
 
 
 ```python
-PR2.Retrieve() # centers object in array
+PR2.Retrieve()
 img2 = PR2.finalImage
 sup2 = PR2.finalSupport
+
+# note that manual centering of the object in the array is
+# not necessary, this is already done in the Retrieve() 
+# routine within the GPU module.
 ```
 
 

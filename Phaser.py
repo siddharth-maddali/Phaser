@@ -185,7 +185,7 @@ class Phaser:
         return
 
 # The alignment oeprator that centers the object after phase retrieval.
-    def Retrieve():
+    def Retrieve( self ):
         self.finalImage = self._cImage
         self.finalSupport = self._support
         self.finalImage, self.finalSupport = post.centerObject( 
