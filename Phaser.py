@@ -44,8 +44,13 @@ from tqdm import tqdm
 import PostProcessing as post
 import GPUModule as accelerator
 
+# plugin modules
+import RecipeParser
 
-class Phaser:
+
+class Phaser( 
+        RecipeParser.Mixin
+    ):
 
     def __init__( self,
             modulus,
@@ -75,6 +80,7 @@ class Phaser:
 
         self._error             = []
         self._UpdateError()
+        self.generateAlgoDict()
 
         if gpu==True:
             self.gpusolver = accelerator.Solver( 
@@ -124,8 +130,12 @@ class Phaser:
         return
 
 # Error reduction algorithm
-    def ErrorReduction( self, num_iterations ):
-        for i in tqdm( list( range( num_iterations ) ), desc=' ER' ):
+    def ER( self, num_iterations, show_progress=False ):
+        if show_progress:
+            allIterations = tqdm( list( range( num_iterations ) ), desc=' ER' )
+        else:
+            allIterations = list( range( num_iterations ) )
+        for i in allIterations:
             self._ModProject()
             self._cImage *= self._support
             self._cImage_fft_mod = np.absolute( fftn( self._cImage ) )
@@ -133,8 +143,12 @@ class Phaser:
         return
 
 # Hybrid input/output algorithm
-    def HybridIO( self, num_iterations ):
-        for i in tqdm( list( range( num_iterations ) ), desc='HIO' ):
+    def HIO( self, num_iterations, show_progress=False ):
+        if show_progress:
+            allIterations = tqdm( list( range( num_iterations ) ), desc='HIO' )
+        else:
+            allIterations = list( range( num_iterations ) )
+        for i in allIterations:
             origImage = self._cImage.copy() 
             self._ModProject()
             self._cImage = ( self._support * self._cImage ) +\
@@ -143,15 +157,19 @@ class Phaser:
         return
 
 # Solvent flipping algorithm
-    def SolventFlipping( self, num_iterations ):
-        for i in tqdm( list( range( num_iterations ) ), desc=' SF' ):
+    def SF( self, num_iterations, show_progress=False ):
+        if show_progress:
+            allIterations = tqdm( list( range( num_iterations ) ), desc=' SF' )
+        else:
+            allIterations = list( range( num_iterations ) )
+        for i in allIterations:
             self._ModHatProject()
             self._ModProject()
             self._UpdateError()
         return
 
 # Basic shrinkwrap with gaussian blurring
-    def ShrinkWrap( self, sigma, thresh ):
+    def Shrinkwrap( self, sigma, thresh ):
         result = gaussian_filter( 
             np.absolute( self._cImage ), 
             sigma, mode='constant', cval=0.
