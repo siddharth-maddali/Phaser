@@ -36,16 +36,13 @@
 """
 
 import numpy as np
-from pyfftw.interfaces.numpy_fft import fftshift, fftn, ifftn
-#from numpy.fft import fftshift, fftn, ifftn
-from scipy.ndimage.filters import gaussian_filter
-from tqdm import tqdm
-
-import PostProcessing as post
 import GPUModule as accelerator
 
+from pyfftw.interfaces.numpy_fft import fftshift, fftn, ifftn
+#from numpy.fft import fftshift, fftn, ifftn
+
 # plugin modules
-import RecipeParser
+import Core, RecipeParser
 
 
 class Phaser( 
