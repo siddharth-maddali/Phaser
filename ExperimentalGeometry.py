@@ -66,9 +66,10 @@ class ScatteringGeometry:
             # this is the 3x1 direction of changing Q.
             # Also, the NEGATIVE of the detector translation step.
 
+        self.detectorFrame = misc.Delta( self._delta ) @ misc.Gamma( self._gamma )
+
         detXY = self._pix / ( self._lambda * self._arm ) *\
-            misc.Delta( self._delta ) @\
-            misc.Gamma( self._gamma ) @\
+            self.detectorFrame @\
             np.array( [ [ 1., 0., 0. ], [ 0., 1., 0. ] ] ).T
             # the columns of this matrix are the reciprocal space steps in the detector x and y directions.
 
