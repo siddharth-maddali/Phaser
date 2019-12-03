@@ -1,4 +1,4 @@
-function [ iso, x, y, z ] = plotParticle( rho, varargin )
+function [ iso, x, y, z, p, cbar ] = plotParticle( rho, varargin )
 
 %     varargins:
 %     1 = isoval (float) (default = 0.5)
@@ -23,19 +23,26 @@ function [ iso, x, y, z ] = plotParticle( rho, varargin )
         fprintf( 2, 'plotParticle warning: Too many input arguments. \n' );
     end
     
-%     setting average phase to zero
-    normalizr = sum( abs( rho(:) ) );
-    phimean = sum( angle( rho(:) ) .* abs( rho(:) ) ) / normalizr;
+% %     setting average phase to zero
+%     normalizr = sum( abs( rho(:) ) );
+%     phimean = sum( angle( rho(:) ) .* abs( rho(:) ) ) / normalizr;
     
     if strcmp( objSelect, 'straight' )
-        sgn = 1;
+        rhoFinal = rho; 
+        % i.e. the solution rho(x)
     elseif strcmp( objSelect, 'twin' )
-        sgn = -1;
+        rhoFinal = conj( flip( flip( flip( rho, 1 ), 2 ), 3 ) );
+        % i.e. the solution rho*(-x)
     else
         fprintf( 2, 'plotParticle warning: Unrecognized object convention. \n' );
-        sgn = 1;
+        rhoFinal = rho;
     end
-    rhoPlot = abs( rho ) .* exp( 1j * sgn*( angle( rho ) - phimean ) );
+    amp = abs( rhoFinal );
+    ang = angle( rhoFinal );
+    ang = ang .* ( ang > 0 ) + ( 2*pi + ang ) .* ( ang < 0 ); % unwrapping
+    angmean = sum( ang(:) .* amp(:)  ) / sum( amp(:) );
+    ang = ang - angmean;
+    rhoPlot = amp .* exp( 1j * ang );
     
     [ x, y, z ] = meshgrid( 1:size( rhoPlot, 1 ), 1:size( rhoPlot, 2 ), 1:size( rhoPlot, 3 ) );
     y = max( y(:) ) - y;
@@ -44,21 +51,22 @@ function [ iso, x, y, z ] = plotParticle( rho, varargin )
     y = y - mean( y(:) );
     z = z - mean( z(:) );
     
-    pts = sgn * skew * [ x(:) y(:) z(:) ]';        
+    pts = skew * [ x(:) y(:) z(:) ]';        
     x = reshape( pts(1,:)', size( rhoPlot ) );
     y = reshape( pts(2,:)', size( rhoPlot ) );
     z = reshape( pts(3,:)', size( rhoPlot ) );
     
     iso = isosurface( ...
         x, y, z, ...
-        smooth3( abs( rhoPlot ), 'gaussian', 5 ), ...
+        smooth3( smooth3( abs( rhoPlot ), 'gaussian', 5 ), 'gaussian', 5 ), ...
         isoval, ...
-        sgn * smooth3( angle( rhoPlot ), 'gaussian', 3 ) ...
+        smooth3( angle( rhoPlot ), 'gaussian', 3 ) ...
     );
-    patch( iso, 'FaceColor', 'interp', 'EdgeColor', 'none' );
+    iso.facevertexcdata = iso.facevertexcdata - mean( iso.facevertexcdata(:) );
+    p = patch( iso, 'FaceColor', 'interp', 'EdgeColor', 'none' );
     axis image;
     grid on;
     colormap( 'parula' );
-    colorbar;
+    cbar = colorbar;
     tetLighting();
 end
