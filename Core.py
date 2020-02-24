@@ -12,10 +12,11 @@
 ##############################################################
 
 import numpy as np
-from tqdm import tqdm
 
-from pyfftw.interfaces.numpy_fft import fftshift, fftn, ifftn
-#from numpy.fft import fftshift, fftn, ifftn
+try: 
+    from pyfftw.interfaces.numpy_fft import fftshift, fftn, ifftn
+except:
+    from numpy.fft import fftshift, fftn, ifftn
 
 from scipy.ndimage.filters import gaussian_filter
 
@@ -46,60 +47,16 @@ class Mixin:
 
 # Updating the error metric
     def _UpdateError( self ):
+#        self._error += [ 
+#            ( 
+#                ( self._cImage_fft_mod - self._modulus )**2 * self._modulus 
+#            ).sum() / self._modulus_sum 
+#        ]
         self._error += [ 
             ( 
-                ( self._cImage_fft_mod - self._modulus )**2 * self._modulus 
-            ).sum() / self._modulus_sum 
+                ( self._cImage_fft_mod - self._modulus )**2
+            ).sum()
         ]
-        return
-
-# Error reduction algorithm
-    def ER( self, num_iterations, show_progress=False ):
-        if show_progress:
-            allIterations = tqdm( list( range( num_iterations ) ), desc=' ER' )
-        else:
-            allIterations = list( range( num_iterations ) )
-        for i in allIterations:
-            self._ModProject()
-            self._cImage *= self._support
-            self._cImage_fft_mod = np.absolute( fftn( self._cImage ) )
-            self._UpdateError()
-        return
-
-# Hybrid input/output algorithm
-    def HIO( self, num_iterations, show_progress=False ):
-        if show_progress:
-            allIterations = tqdm( list( range( num_iterations ) ), desc='HIO' )
-        else:
-            allIterations = list( range( num_iterations ) )
-        for i in allIterations:
-            origImage = self._cImage.copy() 
-            self._ModProject()
-            self._cImage = ( self._support * self._cImage ) +\
-                self._support_comp * ( origImage - self._beta * self._cImage )
-            self._UpdateError()
-        return
-
-# Solvent flipping algorithm
-    def SF( self, num_iterations, show_progress=False ):
-        if show_progress:
-            allIterations = tqdm( list( range( num_iterations ) ), desc=' SF' )
-        else:
-            allIterations = list( range( num_iterations ) )
-        for i in allIterations:
-            self._ModHatProject()
-            self._ModProject()
-            self._UpdateError()
-        return
-
-# Basic shrinkwrap with gaussian blurring
-    def Shrinkwrap( self, sigma, thresh ):
-        result = gaussian_filter( 
-            np.absolute( self._cImage ), 
-            sigma, mode='constant', cval=0.
-        )
-        self._support = ( result > thresh*result.max() ).astype( float )
-        self._support_comp = 1. - self._support
         return
 
 # The projection operator into the modulus space of the FFT.
@@ -108,6 +65,12 @@ class Mixin:
         self._cImage = ifftn( 
             self._modulus * np.exp( 1j * np.angle( fftn( self._cImage ) ) ) 
         )
+        return
+
+# Projection operator into the support space.
+# This is a linear operator.
+    def _SupProject( self ):
+        self._cImage *= self._support
         return
 
 # The reflection operator in the plane of the (linear)
@@ -126,7 +89,34 @@ class Mixin:
         self._SupReflect()
         return
 
-# The alignment oeprator that centers the object after phase retrieval.
+# Update the inferred signal modulus
+    def _UpdateMod( self ):
+        self._cImage_fft_mod = np.absolute( fftn( self._cImage ) )
+        return
+
+# cache current real-space solution (used in HIO)
+    def _CacheImage( self ):
+        self._cachedImage = self._cImage.copy() 
+        return
+
+# update step used in CPU HIO
+    def _UpdateHIOStep( self ):
+        self._cImage = ( self._support * self._cImage ) +\
+            self._support_comp * ( self._cachedImage - self._beta * self._cImage )
+        return
+
+# CPU-specific shrinkwrap implementation
+    def Shrinkwrap( self, sigma, thresh ):
+        result = gaussian_filter( 
+            np.absolute( self._cImage ), 
+            sigma, mode='constant', cval=0.
+        )
+        self._support = ( result > thresh*result.max() ).astype( float )
+        self._support_comp = 1. - self._support
+        return
+
+
+# The alignment operator that centers the object after phase retrieval.
     def Retrieve( self ):
         self.finalImage = self._cImage
         self.finalSupport = self._support
