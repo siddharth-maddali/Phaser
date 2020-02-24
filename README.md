@@ -1,37 +1,51 @@
-
 # Phase retrieval with Python: `Phaser`
 
 <img align="right" src="1db4_star_trek_phaser_remote_replica.jpg" width=400>
 
-Created by: Siddharth Maddali
+## Created by: Siddharth Maddali
 
-This presentation, along with the Python modules, is available at:<br/>
+### This presentation, along with the Python modules, is available at:<br/>
 https://github.com/siddharth-maddali/Phaser
+
+# UPDATES
+
+   - Refactored to use Tensorflow 2.x (`master` branch), older code still available in `tensorflow-1.x` branch.
+       - Code base is much more compact.
+       - Works much faster than the 1.x module (1.x used to offer ~8x speedup compared to CPU, 2.x offers ~20x!)
+   - Only core libraries differ for CPU and GPU implementations.
+   - ER, HIO and SF are implemented with the same high-level plugins (implemented through mixins).
+   - Recipe strings now work on the GPU as well as CPU.
 
    # Introduction
    - Basic Python tutorial of module `Phaser` for BCDI phase retrieval.
 
-   - For data from Beamline 34-ID-C of the Advanced Photon Source
+   - Contains diffraction geometry modules for the 34-ID-C setup at the Advanced Photon Source.
+       - Can be adapted to other geometries, please open an issue/feature request if you need this done.
 
-   - Much simpler to use and modify than older Matlab code currently in use.
+   - Modular, much simpler to use and modify than currently used Matlab legacy code.
 
-   - Current dependencies:
-       - `numpy` (linear algebra)
-       - `scipy` (advanced algorithms, reading Matlab files)
-       - `tqdm` (for progress bar displays)
-       - `tensorflow`, `tensorflow-gpu`
-       - Can be installed in the usual way in Python: `pip install <module>`.
+   - Current dependencies (apart from standard modules like `time` and `functools`):
+       - `numpy>=1.17.1` (linear algebra)
+       - `scipy>=1.4.1` (advanced algorithms, reading Matlab files)
+       - `tqdm>=4.41.1` (for progress bar displays)
+       - `tensorflow>=2.1.0` (for GPU compatibility)
+       - `matplotlib>=3.0.3` (plotting)
+       - NOTES: 
+           - These module versions are based on my current environment state. Feel free to try with earlier versions.
+           - All modules can be installed in the usual way: `pip install <module>`.
+           - the `tensorflow 1.x`-compatible library is available on branch `tensorflow-1.x` of this repo.
+       
 
 # Recommended Python setup
-   - Preferably GNU/Linux or Mac (I don't know much about Windows)
+   - Preferably GNU/Linux or Mac (I can't help much with Windows).
 
-   - Python running in a virtual environment (`virtualenv`) 
-       - Recommended setup for Tensorflow 
-       - Install instructions [here](https://www.tensorflow.org/install/install_linux#InstallingVirtualenv)
+   - **Option 1**: Python running in a virtual environment (`virtualenv`).
+       - Recommended setup for Tensorflow.
+       - Install instructions [here](https://www.tensorflow.org/install/install_linux#InstallingVirtualenv).
 
-   - Anaconda: very fast, Intel Math Kernel Library (MKL) for backend.
-       - Sometimes does not play well with Tensorflow
-       - Install instructions [here](https://www.digitalocean.com/community/tutorials/how-to-install-the-anaconda-python-distribution-on-ubuntu-18-04)
+   - **Option 2**: Anaconda - very fast, Intel's Math Kernel Library (MKL) for numerical backend.
+       - Sometimes does not play wellwith older versions of Tensorflow 1.x (no guarantees for 2.x).
+       - Install instructions [here](https://www.digitalocean.com/community/tutorials/how-to-install-the-anaconda-python-distribution-on-ubuntu-18-04).
 
    - Once Python is installed, the iPython shell can be started from the Bash shell with:
        ```
@@ -44,9 +58,9 @@ https://github.com/siddharth-maddali/Phaser
        %run -i <filename>.py # don't forget the %
        ```
 
-# CPU tutorial
+# Initial setup
 
-## Basic imports
+## Module imports
 
 
 ```python
@@ -54,10 +68,10 @@ import numpy as np
 
 # import custom modules
 import Phaser as ph
-import ExperimentalGeometry as exp
+import ExperimentalGeometry as exp # currently implements the motors at 34-ID-C
 import TilePlot as tp
 
-# plotting modules
+# plotting 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
@@ -85,7 +99,7 @@ data = dataset[ 'data' ] # the 3D data is now a numpy array.
 print( 'Array size = ', data.shape )
 ```
 
-    dict_keys(['data', '__globals__', '__header__', '__version__'])
+    dict_keys(['__globals__', 'data', '__version__', '__header__'])
     Array size =  (128, 128, 70)
 
 
@@ -138,6 +152,7 @@ supInit[ #   // means integer division in Python3, as opposed to /, the usual fl
 ] = 1.
 ```
 
+# CPU tutorial 
 ## Create a phase retrieval solver object for CPU
 
 
@@ -183,22 +198,22 @@ for sig in sigma:                   #
     PR.Shrinkwrap( sig, 0.1 )       #  shrinkwrap every 90 iterations.
 ```
 
-     ER: 100%|██████████| 30/30 [00:06<00:00,  4.31it/s]
-     ER: 100%|██████████| 30/30 [00:06<00:00,  4.54it/s]
-     ER: 100%|██████████| 30/30 [00:06<00:00,  4.55it/s]
-     ER: 100%|██████████| 30/30 [00:06<00:00,  4.56it/s]
-     ER: 100%|██████████| 30/30 [00:06<00:00,  4.54it/s]
-    HIO: 100%|██████████| 300/300 [01:03<00:00,  4.74it/s]
-     SF: 100%|██████████| 25/25 [00:09<00:00,  2.68it/s]
-     SF: 100%|██████████| 25/25 [00:09<00:00,  2.69it/s]
-     SF: 100%|██████████| 25/25 [00:08<00:00,  2.80it/s]
-     SF: 100%|██████████| 25/25 [00:09<00:00,  2.68it/s]
-    HIO: 100%|██████████| 300/300 [01:03<00:00,  4.76it/s]
-     ER: 100%|██████████| 90/90 [00:20<00:00,  4.49it/s]
-     ER: 100%|██████████| 90/90 [00:20<00:00,  4.49it/s]
-     ER: 100%|██████████| 90/90 [00:19<00:00,  4.52it/s]
-     ER: 100%|██████████| 90/90 [00:20<00:00,  4.48it/s]
-     ER: 100%|██████████| 90/90 [00:19<00:00,  4.50it/s]
+     ER: 100%|██████████| 30/30 [00:07<00:00,  3.91it/s]
+     ER: 100%|██████████| 30/30 [00:07<00:00,  4.21it/s]
+     ER: 100%|██████████| 30/30 [00:07<00:00,  4.10it/s]
+     ER: 100%|██████████| 30/30 [00:07<00:00,  4.08it/s]
+     ER: 100%|██████████| 30/30 [00:07<00:00,  4.02it/s]
+    HIO: 100%|██████████| 300/300 [01:10<00:00,  4.26it/s]
+     SF: 100%|██████████| 25/25 [00:05<00:00,  4.56it/s]
+     SF: 100%|██████████| 25/25 [00:05<00:00,  4.68it/s]
+     SF: 100%|██████████| 25/25 [00:05<00:00,  4.55it/s]
+     SF: 100%|██████████| 25/25 [00:05<00:00,  4.45it/s]
+    HIO: 100%|██████████| 300/300 [01:11<00:00,  4.20it/s]
+     ER: 100%|██████████| 90/90 [00:21<00:00,  4.14it/s]
+     ER: 100%|██████████| 90/90 [00:21<00:00,  4.15it/s]
+     ER: 100%|██████████| 90/90 [00:21<00:00,  4.13it/s]
+     ER: 100%|██████████| 90/90 [00:22<00:00,  4.09it/s]
+     ER: 100%|██████████| 90/90 [00:21<00:00,  4.16it/s]
 
 
 ## Extracting image and support from black box
@@ -220,7 +235,7 @@ fig, im, ax = tp.TilePlot(
         np.absolute( img[64,29:99,:] ), 
         np.absolute( img[29:99,64,:] ), 
         np.absolute( img[29:99,29:99,30] )                                         
-    ), dd
+    ),
     ( 1, 3 ), 
     ( 9, 3 )
 )
@@ -275,6 +290,7 @@ fig, im, ax = tp.TilePlot(
 ax[0].set_xlabel( 'YZ' )
 ax[1].set_xlabel( 'ZX' )
 ax[2].set_xlabel( 'XY' )
+
 fig.savefig( 'images/scattererPhs.jpg')
 ```
 
@@ -292,7 +308,7 @@ plt.ylabel( 'Error' )
 plt.savefig( 'images/reconError.jpg' )
 ```
 
-<img src="images/reconError.jpg">
+<img src="./images/reconError.jpg">
 
 ### Transforming from array to real-world coordinates
    - Matlab has better isosurface plotting than Python (for now)
@@ -333,6 +349,7 @@ sio.savemat(
 # Recipe strings
 
 `Phaser` can also run an entire phase retrieval recipe by parsing "recipe strings", which are simply Python strings that encode a phase retrieval recipe. 
+See `RecipeParser.py` documentation for more details.
 
    - Recipe string for 30 iterations of ER is simply:<br/>`'ER:30'`.  
    
@@ -356,7 +373,7 @@ print( recipestr )
 
 ## Running the recipe using the string
 
-Start with a new `Phaser` object...
+Here, starting with a new `Phaser` object and use the `runRecipe` method...
 
 
 ```python
@@ -367,11 +384,11 @@ PR_alt = ph.Phaser(
 PR_alt.runRecipe( recipestr )
 ```
 
-... to get the same result!
+... and so on, to get the same result!
 
    - Recipe strings are used in parallelized phase retrieval.
-   - `tqdm`-enabled progress bars are disabled for this mode of operation.
-   - Currently recipe strings are implemented for CPU only.
+   - `tqdm`-enabled progress bars are disabled by default for this mode of operation.
+   - Recipe strings can work with CPU as well as GPU without loss of generality.
 
 # GPU tutorial
 
@@ -393,32 +410,42 @@ PR2 = ph.Phaser(
 
 
 ```python
-sigma = np.linspace( 5., 3., 5 )        
-for sig in tqdm( sigma, desc=' ER' ):   
-    PR2.ER( 30 )                        #  150 iters. of error reduction
-    PR2.Shrinkwrap( sig, 0.1 )          #  with shrinkwrap every 30 iters.
-              
+sigma = np.linspace( 5., 3., 5 )    #
+for sig in sigma:                   #  150 iters. of error reduction
+    PR2.ER( 30, show_progress=True ) #  with shrinkwrap every 30 iters.
+    PR2.Shrinkwrap( sig, 0.1 )       #
     
-PR2.HIO( 300, show_progress=True )      #  300 iterations of hybrid I/O
+PR2.HIO( 300, show_progress=True )   #  300 iterations of hybrid I/O
 
 sigma = np.linspace( 3., 2., 4 )
-for sig in tqdm( sigma, desc=' SF' ):                       
-    PR2.SF( 25 )                        #  100 iterations of solvent flipping, 
-    PR2.Shrinkwrap( sig, 0.1 )          #  shrinkwrap every 25 iterations.
+for sig in sigma:                   #
+    PR2.SF( 25, show_progress=True ) #  100 iterations of solvent flipping, 
+    PR2.Shrinkwrap( sig, 0.1 )       #  shrinkwrap every 25 iterations.
     
-PR2.HIO( 300, show_progress=True )      #  300 iterations of hybrid I/O
+PR2.HIO( 300, show_progress=True )   #  300 iterations of hybrid I/O
 
 sigma = np.linspace( 2., 1., 5 )
-for sig in tqdm( sigma, desc=' ER' ):                   
-    PR2.ER( 90 )                        #  450 iterations of error reduction, 
-    PR2.Shrinkwrap( sig, 0.1 )          #  shrinkwrap every 90 iterations.
+for sig in sigma:                   #
+    PR2.ER( 90, show_progress=True ) #  450 iterations of error reduction, 
+    PR2.Shrinkwrap( sig, 0.1 )       #  shrinkwrap every 90 iterations.
 ```
 
-     ER: 100%|██████████| 5/5 [00:06<00:00,  1.36s/it]
-    HIO: 100%|██████████| 300/300 [00:09<00:00, 30.40it/s]
-     SF: 100%|██████████| 4/4 [00:04<00:00,  1.09s/it]
-    HIO: 100%|██████████| 300/300 [00:09<00:00, 30.78it/s]
-     ER: 100%|██████████| 5/5 [00:11<00:00,  2.37s/it]
+     ER: 100%|██████████| 30/30 [00:00<00:00, 49.68it/s]
+     ER: 100%|██████████| 30/30 [00:00<00:00, 74.28it/s]
+     ER: 100%|██████████| 30/30 [00:00<00:00, 76.34it/s]
+     ER: 100%|██████████| 30/30 [00:00<00:00, 73.91it/s]
+     ER: 100%|██████████| 30/30 [00:00<00:00, 74.06it/s]
+    HIO: 100%|██████████| 300/300 [00:03<00:00, 76.66it/s]
+     SF: 100%|██████████| 25/25 [00:00<00:00, 78.69it/s]
+     SF: 100%|██████████| 25/25 [00:00<00:00, 78.61it/s]
+     SF: 100%|██████████| 25/25 [00:00<00:00, 76.29it/s]
+     SF: 100%|██████████| 25/25 [00:00<00:00, 78.08it/s]
+    HIO: 100%|██████████| 300/300 [00:03<00:00, 78.58it/s]
+     ER: 100%|██████████| 90/90 [00:01<00:00, 81.07it/s]
+     ER: 100%|██████████| 90/90 [00:01<00:00, 78.37it/s]
+     ER: 100%|██████████| 90/90 [00:01<00:00, 78.90it/s]
+     ER: 100%|██████████| 90/90 [00:01<00:00, 73.15it/s]
+     ER: 100%|██████████| 90/90 [00:01<00:00, 81.19it/s]
 
 
 ## Extracting image and support from black box `PR2`
@@ -428,10 +455,6 @@ for sig in tqdm( sigma, desc=' ER' ):
 PR2.Retrieve()
 img2 = PR2.finalImage
 sup2 = PR2.finalSupport
-
-# note that manual centering of the object in the array is
-# not necessary, this is already done in the Compute() 
-# routine within the GPU module.
 ```
 
 ## Visualizing the result
@@ -504,5 +527,4 @@ fig.savefig( 'images/scattererPhs_gpu.jpg')
 <img src="images/scattererPhs_gpu.jpg">
 
 # Upcoming features
-   - Parallelization for guided algorithms using `mpi4py`
    - A simple partial coherence correction module

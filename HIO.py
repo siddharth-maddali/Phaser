@@ -20,9 +20,8 @@ class Mixin:
         else:
             allIterations = list( range( num_iterations ) )
         for i in allIterations:
-            origImage = self._cImage.copy() 
+            self._CacheImage()
             self._ModProject()
-            self._cImage = ( self._support * self._cImage ) +\
-                self._support_comp * ( origImage - self._beta * self._cImage )
+            self._UpdateHIOStep()
             self._UpdateError()
         return

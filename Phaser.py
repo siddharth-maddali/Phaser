@@ -78,7 +78,8 @@ class Phaser(
                                     ) ) * self._support
         else:
             self._cImage            = 1. * support
-        
+       
+        self._cachedImage       = np.zeros( self._cImage.shape ).astype( complex )
         self._cImage_fft_mod = np.absolute( fftn( self._cImage ) )
 
         self._error             = []

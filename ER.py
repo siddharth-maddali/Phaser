@@ -21,7 +21,7 @@ class Mixin:
             allIterations = list( range( num_iterations ) )
         for i in allIterations:
             self._ModProject()
-            self._cImage *= self._support
+            self._SupProject()
             self._UpdateMod()
             self._UpdateError()
         return

@@ -22,7 +22,6 @@ class Mixin:
         for i in allIterations:
             self._SupReflect()
             self._ModProject()
-#            self._UpdateMod()        # this doesn't do anything for SF
             self._UpdateError()
-        self._cImage *= self._support # project one last time into support space
+        self._SupProject() # project one last time into the support space
         return

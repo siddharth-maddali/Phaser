@@ -67,6 +67,12 @@ class Mixin:
         )
         return
 
+# Projection operator into the support space.
+# This is a linear operator.
+    def _SupProject( self ):
+        self._cImage *= self._support
+        return
+
 # The reflection operator in the plane of the (linear)
 # support operator. This operator is also linear.
     def _SupReflect( self ):
@@ -86,6 +92,17 @@ class Mixin:
 # Update the inferred signal modulus
     def _UpdateMod( self ):
         self._cImage_fft_mod = np.absolute( fftn( self._cImage ) )
+        return
+
+# cache current real-space solution (used in HIO)
+    def _CacheImage( self ):
+        self._cachedImage = self._cImage.copy() 
+        return
+
+# update step used in CPU HIO
+    def _UpdateHIOStep( self ):
+        self._cImage = ( self._support * self._cImage ) +\
+            self._support_comp * ( self._cachedImage - self._beta * self._cImage )
         return
 
 # CPU-specific shrinkwrap implementation
