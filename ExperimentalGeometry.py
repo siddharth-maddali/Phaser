@@ -17,7 +17,12 @@
 #	    upward:     +y
 #	Warning: 34-ID convention is different from this.
 #       This script follows the more general APS convention.
-
+#
+#    Update: The paper in which we've described this transformation 
+#    has been accepted for publication in the Journal of Applied 
+#    Crystallography, and a nearly identical preprint can be found here: 
+#    https://arxiv.org/abs/1909.05353
+#
 
 import numpy as np
 import Misc as misc

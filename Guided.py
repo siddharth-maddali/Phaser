@@ -1,3 +1,17 @@
+#####################################################################
+#
+#    Guided.py: 
+#        Script demonstrating parallelized implementation of 
+#        Phaser using genetic algorithms. Implemented with 
+#        mpi4py.
+#
+#        Siddharth Maddali
+#        Argonne National Laboratory
+#        February 2020
+#        smaddali@alumni.cmu.edu
+#
+#####################################################################
+
 import numpy as np
 import scipy.io as sio
 import time
@@ -22,30 +36,25 @@ if rank==0:
     print( 'Parallelizing on %d workers. '%size )
     sys.stdout.flush()
 
+# number of generations to breed forward
+numGenerations = 7
+
 ############# USER EDIT #########################
 
 # define phase retrieval recipe string here
 er1 = 'ER:5+'+'+ER:5+'.join( [ 'SR:%.1f:0.1'%sig    for sig in np.linspace( 3., 2., 7 ) ] )+'+ER:5'
-#sf  = 'SF:5+'+'+SF:5+'.join( [ 'SR:%.1f:0.1'%sig    for sig in np.linspace( 2., 1., 3 ) ] )+'+SF:5'
 sf  = 'ER:5+'+'+ER:5+'.join( [ 'SR:%.1f:0.1'%sig    for sig in np.linspace( 2., 1., 3 ) ] )+'+ER:5'
 er2 = 'ER:5+'+'+ER:5+'.join( [ 'SR:1.:0.1'          for sig in np.linspace( 1., 1., 3 ) ] )+'+ER:5'
 recipe = er1 + '+HIO:50+' + sf + '+' + er2
 
-# number of generations to inter-breed
-numGenerations = 7
-
 # load data set
-#signal = Namespace( **sio.loadmat( '/home/smaddali/ANL/simulatedCrystals/crystals/crystal_2.mat' ) ).signal
-signal = Namespace( **sio.loadmat( '/home/smaddali/ANL/simulatedCrystals/crystals/singleScrewDislocation.mat' ) ).intens
-#signal = Namespace( **sio.loadmat( '/home/smaddali/ANL/simulatedCrystals/crystals/singleScrewDislocation.mat' ) ).signal
+signal = Namespace( **sio.loadmat( 'singleScrewDislocation.mat' ) ).signal
 
 # choose comparison metric for solutions
 figureOfMerit = fom.Chi
 
 # output .mat file
-#outfile = 'guidedResult_crystal2.mat'
-outfile = '/home/smaddali/ANL/simulatedCrystals/recovered/singleScrewDislocation_nonoise_1wkrs_noSF.mat'
-#outfile = '/home/smaddali/ANL/simulatedCrystals/recovered/fourScrewDislocations.mat'
+outfile = 'guidedResult.mat'
 
 #################################################
 

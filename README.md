@@ -7,22 +7,13 @@
 ### This presentation, along with the Python modules, is available at:<br/>
 https://github.com/siddharth-maddali/Phaser
 
-# UPDATES
-
-   - Refactored to use Tensorflow 2.x (`master` branch), older code still available in `tensorflow-1.x` branch.
-       - Code base is much more compact.
-       - Works much faster than the 1.x module (1.x used to offer ~8x speedup compared to CPU, 2.x offers ~20x!)
-   - Only core libraries differ for CPU and GPU implementations.
-   - ER, HIO and SF are implemented with the same high-level plugins (implemented through mixins).
-   - Recipe strings now work on the GPU as well as CPU.
-
    # Introduction
    - Basic Python tutorial of module `Phaser` for BCDI phase retrieval.
 
    - Contains diffraction geometry modules for the 34-ID-C setup at the Advanced Photon Source.
-       - Can be adapted to other geometries, please open an issue/feature request if you need this done.
+       - Can be adapted to other geometries, please open an issue/feature request if you need this done for your beamline.
 
-   - Modular, much simpler to use and modify than currently used Matlab legacy code.
+   - Modular, much simpler to use and modify than existing Matlab legacy code.
 
    - Current dependencies (apart from standard modules like `time` and `functools`):
        - `numpy>=1.17.1` (linear algebra)
@@ -30,8 +21,9 @@ https://github.com/siddharth-maddali/Phaser
        - `tqdm>=4.41.1` (for progress bar displays)
        - `tensorflow>=2.1.0` (for GPU compatibility)
        - `matplotlib>=3.0.3` (plotting)
+       - `mpi4py>=3.0.2` (for parallelized phasing)
        - NOTES: 
-           - These module versions are based on my current environment state. Feel free to try with earlier versions.
+           - These modules are based on my current Python environment (determined using `pip freeze`). Feel free to try with earlier versions.
            - All modules can be installed in the usual way: `pip install <module>`.
            - the `tensorflow 1.x`-compatible library is available on branch `tensorflow-1.x` of this repo.
        
@@ -44,7 +36,7 @@ https://github.com/siddharth-maddali/Phaser
        - Install instructions [here](https://www.tensorflow.org/install/install_linux#InstallingVirtualenv).
 
    - **Option 2**: Anaconda - very fast, Intel's Math Kernel Library (MKL) for numerical backend.
-       - Sometimes does not play wellwith older versions of Tensorflow 1.x (no guarantees for 2.x).
+       - Sometimes does not play well with older versions of Tensorflow 1.x (no guarantees for 2.x).
        - Install instructions [here](https://www.digitalocean.com/community/tutorials/how-to-install-the-anaconda-python-distribution-on-ubuntu-18-04).
 
    - Once Python is installed, the iPython shell can be started from the Bash shell with:
@@ -525,6 +517,23 @@ fig.savefig( 'images/scattererPhs_gpu.jpg')
 ```
 
 <img src="images/scattererPhs_gpu.jpg">
+
+# Parallelization on CPU
+
+   - Implemented using MPI bindings for Python (`mpi4py`).
+   - Uses recipe strings for efficient parallelization.
+   - See Python script `Guided.py` for a basic tutorial.
+   - Usage: 
+       - Install `mpi4py`: instructions [here](https://mpi4py.readthedocs.io/en/stable/install.html).
+       - Run the script from the Bash (not Python!) command line; for example, to parallelize on 4 processors:
+       ```bash
+       $ mpirun -n 4 python Guided.py
+        ```
+   - The genetic algorithms implemented are described [here](https://www.nature.com/articles/s41598-017-09582-7).
+   
+## CAUTION
+   1. Parallelization not yet tested properly for the GPU solver, so no guarantees yet.
+   1. There seems to be significant overhead introduced when scaling up to multiple processors; this can be offset somewhat by keeping the phase retrieval recipe itself short and simple.
 
 # Upcoming features
    - A simple partial coherence correction module
