@@ -1,0 +1,130 @@
+import numpy as np
+import scipy.io as sio
+import time
+import sys
+
+from datetime import datetime
+from mpi4py import MPI
+from argparse import Namespace
+
+import FigureOfMerit as fom
+import Phaser as ph
+import warnings
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()  # worker index
+size = comm.Get_size()  # worker pool size
+
+warnings.filterwarnings( 'ignore', category=FutureWarning )
+    # this doesn't seem to work
+
+if rank==0:
+    print( 'Parallelizing on %d workers. '%size )
+    sys.stdout.flush()
+
+############# USER EDIT #########################
+
+# define phase retrieval recipe string here
+er1 = 'ER:5+'+'+ER:5+'.join( [ 'SR:%.1f:0.1'%sig    for sig in np.linspace( 3., 2., 7 ) ] )+'+ER:5'
+#sf  = 'SF:5+'+'+SF:5+'.join( [ 'SR:%.1f:0.1'%sig    for sig in np.linspace( 2., 1., 3 ) ] )+'+SF:5'
+sf  = 'ER:5+'+'+ER:5+'.join( [ 'SR:%.1f:0.1'%sig    for sig in np.linspace( 2., 1., 3 ) ] )+'+ER:5'
+er2 = 'ER:5+'+'+ER:5+'.join( [ 'SR:1.:0.1'          for sig in np.linspace( 1., 1., 3 ) ] )+'+ER:5'
+recipe = er1 + '+HIO:50+' + sf + '+' + er2
+
+# number of generations to inter-breed
+numGenerations = 7
+
+# load data set
+#signal = Namespace( **sio.loadmat( '/home/smaddali/ANL/simulatedCrystals/crystals/crystal_2.mat' ) ).signal
+signal = Namespace( **sio.loadmat( '/home/smaddali/ANL/simulatedCrystals/crystals/singleScrewDislocation.mat' ) ).intens
+#signal = Namespace( **sio.loadmat( '/home/smaddali/ANL/simulatedCrystals/crystals/singleScrewDislocation.mat' ) ).signal
+
+# choose comparison metric for solutions
+figureOfMerit = fom.Chi
+
+# output .mat file
+#outfile = 'guidedResult_crystal2.mat'
+outfile = '/home/smaddali/ANL/simulatedCrystals/recovered/singleScrewDislocation_nonoise_1wkrs_noSF.mat'
+#outfile = '/home/smaddali/ANL/simulatedCrystals/recovered/fourScrewDislocations.mat'
+
+#################################################
+
+# generate initial support
+shp = signal.shape
+supInit = np.zeros( shp )
+supInit[ 
+    (shp[0]//2-shp[0]//6):(shp[0]//2+shp[0]//6), 
+    (shp[1]//2-shp[1]//6):(shp[1]//2+shp[1]//6), 
+    (shp[2]//2-shp[2]//6):(shp[2]//2+shp[2]//6)
+] = 1. # i.e. a box 1/3 the size of the array
+time.sleep( 1 )
+
+# initialize worker pool
+workID = 'Worker-%d'%rank
+worker = ph.Phaser( 
+    modulus=np.sqrt( signal ), 
+    support=supInit.copy()
+)
+print( '%s: Online. '%workID )
+sys.stdout.flush()
+
+# start parallel phasing
+time.sleep( 1 )
+for generation in list( range( numGenerations ) ):
+    if rank==0:
+        print( '___________ Generation %d ____________'%generation )
+        sys.stdout.flush()
+
+    tstart = datetime.now()
+    worker.runRecipe( recipe )
+    worker.Retrieve()
+    tstop = datetime.now()
+
+    img = worker.finalImage
+    sup = worker.finalSupport
+    fm = figureOfMerit( worker.Modulus(), np.sqrt( signal )  )
+
+    print( '%s: Phased in '%workID, tstop-tstart, ', cost = %.2f'%fm  )
+    sys.stdout.flush()	
+
+    all_fms = [ rank, fm ]
+    all_fms = comm.gather( all_fms, root=0 )
+    if rank==0:
+        results = np.array( all_fms )
+        here = np.where( results[:,1]==results[:,1].min() )
+        winning_rank = here[0][0]
+    else:
+        winning_rank = None
+	
+    winning_rank = comm.bcast( winning_rank, root=0 )
+    if rank==0 and generation < numGenerations-1:
+        print( 'Breeding solution %d into the others...'%winning_rank )
+        sys.stdout.flush() 
+
+    if rank==winning_rank:
+        winning_img = img
+        new_sup = sup
+    else:
+        winning_img = np.empty( img.shape, dtype=complex )
+        new_sup = np.empty( sup.shape, dtype=float )
+
+    comm.Bcast( winning_img, root=winning_rank )
+    new_img = np.sqrt( winning_img * img )
+    
+    comm.Bcast( new_sup, root=winning_rank )
+    new_sup = ( new_sup + sup > 0.5 ).astype( float ) # the union of two supports
+    
+    worker.ImageRestart( new_img, new_sup )
+
+if rank==winning_rank:
+    print( 'Final solution: worker %d. '%rank )
+    sio.savemat( 
+        outfile, 
+        { 
+            'img':new_img, 
+            'sup':new_sup
+        }
+    )
+    print( 'Dumped final solution to %s. '%outfile )
+    print( 'Done. ' )
+
