@@ -131,7 +131,7 @@ print( 'Bragg peak now at: ', maxHereNow )
 
 ## Creating initial support for phase retrieval
    - This gets updated with a shrinkwrap algorithm
-   - Initial support should never be bigger than $1/3$ of array size.
+   - Initial support should never be bigger than half of the array size along each axis.
 
 
 ```python
@@ -374,6 +374,9 @@ PR_alt = ph.Phaser(
     support=supInit.copy() 
 )
 PR_alt.runRecipe( recipestr )
+PR.Retrieve() 
+img = PR.finalImage
+sup = PR.finalSupport
 ```
 
 ... and so on, to get the same result!
@@ -537,3 +540,8 @@ fig.savefig( 'images/scattererPhs_gpu.jpg')
 
 # Upcoming features
    - A simple partial coherence correction module
+
+# Acknowledgements
+
+   - **Matthew Wilkin**<br/>
+   Dept. of Materials Science and Engg., Carnegie Mellon University

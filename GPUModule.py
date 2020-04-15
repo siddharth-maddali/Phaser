@@ -31,6 +31,7 @@ class Solver(
     def __init__( self, varDict ):   
         # see Phaser.py for definition of varDict
         self.ImportCore( varDict )
+        self.generateAlgoDict()
         return
 
 
