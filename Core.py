@@ -20,6 +20,7 @@ except:
 
 from scipy.ndimage.filters import gaussian_filter
 
+#import GAFFT as gafft           # geometry-aware far-field propagator
 import PostProcessing as post
 
 class Mixin:

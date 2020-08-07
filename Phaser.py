@@ -43,6 +43,8 @@ try:
 except: 
     from numpy.fft import fftshift, fftn, ifftn
 
+from logzero import logger
+
 # plugin modules
 import Core, RecipeParser
 import ER, HIO, SF
@@ -60,12 +62,18 @@ class Phaser(
             modulus,
             support,
             beta=0.9, 
-            binning=1,      # for high-energy CDI. Set to 1 for regular phase retrieval.
+            binning=1,              # for high-energy CDI. Set to 1 for regular phase retrieval.
             gpu=False,
+            version='legacy',       # ...or 'diffgeom'. If 'diffgeom', uses diffraction geometry to obtain real-space object on orthogonal grid.
+            Brecip=None,            # should be provided if 'diffgeom'. Obtained from the ExperimentalGeometry module.
             random_start=True 
             ):
+        
+        if version not in [ 'legacy', 'diffgeom' ]:
+            logger.warning( 'Unrecognized version. Reverting to legacy behavior. ' )
+
         self._modulus           = fftshift( modulus )
-        self._support           = support
+        self._support           = fftshift( support )
         self._beta              = beta
 
 #        self._modulus_sum       = modulus.sum()
@@ -85,6 +93,9 @@ class Phaser(
         self._error             = []
         self._UpdateError()
         self.generateAlgoDict()
+#        if version=='diffgeom': # use diffraction geometry
+#            self._setupDiffractionGeometry( Brecip )
+
 
         if gpu==True:
             self.gpusolver = accelerator.Solver( self.generateGPUPackage() )

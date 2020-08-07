@@ -8,11 +8,15 @@
 ##############################################################
 
 import numpy as np
+try: 
+    from pyfftw.interfaces.numpy_fft import fftshift
+except:
+    from numpy.fft import fftshift
 
 def centerObject( img, sup ):
     
-    imgC = img.copy()
-    supC = sup.copy()
+    imgC = fftshift( img )
+    supC = fftshift( sup )
     span = np.where( supC > 0.5 )
     for n in list( range( len( span ) ) ):
         if 1+span[n].max()-span[n].min()==supC.shape[n]: 
