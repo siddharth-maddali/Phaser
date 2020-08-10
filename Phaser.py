@@ -48,7 +48,7 @@ from logzero import logger
 # plugin modules
 import Core, RecipeParser
 import ER, HIO, SF
-
+#import GAFFT
 
 class Phaser( 
         Core.Mixin,             # core CPU algorithms and routines
@@ -69,12 +69,22 @@ class Phaser(
             random_start=True 
             ):
         
+        self._myfftn = fftn         # usual 3D FFT propagators in the case of 
+        self._myifftn = ifftn       # geometry-agnostic phase retrieval
+
         if version not in [ 'legacy', 'diffgeom' ]:
             logger.warning( 'Unrecognized version. Reverting to legacy behavior. ' )
 
         self._modulus           = fftshift( modulus )
         self._support           = fftshift( support )
         self._beta              = beta
+        
+#        if version=='diffgeom' and Brecip==None:
+#            logzero.error( 'Need to provide matrix Brecip in the detector frame.' )
+#            return
+#        else:
+#            self._Bq = Brecip
+#            self.setupDiffractionGeometry() # overwrites handles for some Core routines.
 
 #        self._modulus_sum       = modulus.sum()
         self._support_comp      = 1. - support
@@ -88,7 +98,7 @@ class Phaser(
             self._cImage            = 1. * support
        
         self._cachedImage       = np.zeros( self._cImage.shape ).astype( complex )
-        self._cImage_fft_mod = np.absolute( fftn( self._cImage ) )
+        self._cImage_fft_mod = np.absolute( self._myfftn( self._cImage ) )
 
         self._error             = []
         self._UpdateError()

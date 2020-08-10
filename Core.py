@@ -14,9 +14,9 @@
 import numpy as np
 
 try: 
-    from pyfftw.interfaces.numpy_fft import fftshift, fftn, ifftn
+    from pyfftw.interfaces.numpy_fft import fftshift
 except:
-    from numpy.fft import fftshift, fftn, ifftn
+    from numpy.fft import fftshift
 
 from scipy.ndimage.filters import gaussian_filter
 
@@ -40,7 +40,7 @@ class Mixin:
 
 # Reader function for the final computed modulus
     def Modulus( self ):
-        return np.absolute( fftshift( fftn( self._cImage ) ) )
+        return np.absolute( fftshift( self._myfftn( self._cImage ) ) )
 
 # Reader function for the error metric
     def Error( self ):
@@ -48,11 +48,6 @@ class Mixin:
 
 # Updating the error metric
     def _UpdateError( self ):
-#        self._error += [ 
-#            ( 
-#                ( self._cImage_fft_mod - self._modulus )**2 * self._modulus 
-#            ).sum() / self._modulus_sum 
-#        ]
         self._error += [ 
             ( 
                 ( self._cImage_fft_mod - self._modulus )**2
@@ -63,8 +58,8 @@ class Mixin:
 # The projection operator into the modulus space of the FFT.
 # This is a highly nonlinear operator.
     def _ModProject( self ):
-        self._cImage = ifftn( 
-            self._modulus * np.exp( 1j * np.angle( fftn( self._cImage ) ) ) 
+        self._cImage = self._myifftn( 
+            self._modulus * np.exp( 1j * np.angle( self._myfftn( self._cImage ) ) ) 
         )
         return
 
@@ -92,7 +87,7 @@ class Mixin:
 
 # Update the inferred signal modulus
     def _UpdateMod( self ):
-        self._cImage_fft_mod = np.absolute( fftn( self._cImage ) )
+        self._cImage_fft_mod = np.absolute( self._myfftn( self._cImage ) )
         return
 
 # cache current real-space solution (used in HIO)
