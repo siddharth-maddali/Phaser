@@ -1,0 +1,8 @@
+matplotlib==3.3.0
+logzero==1.5.0
+tqdm==4.48.0
+scipy==1.4.1
+tensorflow==2.2.0
+numpy==1.19.1
+mpi4py==3.0.3
+pyfftw==0.12.0
