@@ -30,7 +30,7 @@ class Mixin:
         self._support_comp = 1. - self._support
         return
 
-# Writer function to manualy reset image
+# Writer function to manually reset image
     def ImageRestart( self, cImg, reset_error=True ):
         self._cImage = cImg
         if reset_error:

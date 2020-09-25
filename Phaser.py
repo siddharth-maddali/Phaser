@@ -62,6 +62,7 @@ class Phaser(
             beta=0.9, 
             binning=1,      # for high-energy CDI. Set to 1 for regular phase retrieval.
             gpu=False,
+            pcc=False,
             random_start=True 
             ):
         self._modulus           = fftshift( modulus )
@@ -87,7 +88,14 @@ class Phaser(
         self.generateAlgoDict()
 
         if gpu==True:
-            self.gpusolver = accelerator.Solver( self.generateGPUPackage() )
+            gpack = self.generateGPUPackage()
+            self.gpusolver = accelerator.Solver( gpack )
+
+        if pcc==True:
+            try: 
+                self.setUpPCC( gpack )
+            except: 
+                print( 'ERROR: partial coherence correction requires GPU module. Ignoring... ' )
 
         return
 
