@@ -126,11 +126,12 @@ class Mixin:
         return
 
 # Generates a package for the GPU module to read and generate tensors.
-    def generateGPUPackage( self ):
+    def generateGPUPackage( self, pcc=False ):
         mydict = { 
             'modulus':self._modulus, 
             'support':self._support, 
             'beta':self._beta, 
-            'cImage':self._cImage
+            'cImage':self._cImage,
+            'pcc':pcc
         }
         return mydict

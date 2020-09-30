@@ -32,9 +32,7 @@ class Mixin:
         self._error = []
         self._UpdateError()
 
-        x, y, z = np.meshgrid( 
-            *[ np.linspace( -n//2, n//2-1, n ) for n in varDict[ 'support' ].shape ] 
-        )
+        x, y, z = np.meshgrid( *[ np.linspace( -n//2., n//2. ) for n in varDict[ 'support' ].shape ] )
         self._rsquared = tf.constant( 
             ftools.reduce( lambda a, b: a+b, [ this**2 for this in [ x, y, z ] ] ), 
             dtype=tf.complex64

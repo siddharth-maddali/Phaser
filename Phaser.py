@@ -66,7 +66,7 @@ class Phaser(
             random_start=True 
             ):
         self._modulus           = fftshift( modulus )
-        self._support           = support
+        self._support           = fftshift( support )
         self._beta              = beta
 
 #        self._modulus_sum       = modulus.sum()
@@ -88,14 +88,8 @@ class Phaser(
         self.generateAlgoDict()
 
         if gpu==True:
-            gpack = self.generateGPUPackage()
+            gpack = self.generateGPUPackage( pcc=pcc )
             self.gpusolver = accelerator.Solver( gpack )
-
-        if pcc==True:
-            try: 
-                self.setUpPCC( gpack )
-            except: 
-                print( 'ERROR: partial coherence correction requires GPU module. Ignoring... ' )
 
         return
 

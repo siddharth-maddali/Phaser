@@ -18,54 +18,80 @@ import tensorflow as tf
 try: 
     from pyfftw.interfaces.numpy_fft import fftshift
 except:
-    from numpy.fft import 
+    from numpy.fft import fftshift
 
 class Mixin: 
 
     def setUpPCC( self, gpack ):
-        x, y, z = np.meshgrid( *[ np.arange( -n//2., n//2. ) in gpack[ 'support' ].shape ] )
+        pts, parm_list = self._setupDomain( gpack=gpack )
+        self._setupConstants( pts )
+        self._setupVariables( parm_list )
+        self._setupOptimizer()
+        return
+
+
+    def _ModProject( self ): # this definition replaces existing definition of _ModProject
+        self._modulus_estimated.assign( 
+            tf.cast( 
+                tf.signal.ifft3d( 
+                    self._blurKernel_f * 
+                    tf.signal.fft3d( tf.cast( tf.abs( tf.signal.fft3d( self._cImage ) )**2, dtype=tf.complex64 ) )
+                ), 
+                dtype=tf.float32
+            )
+        )
+        self._cImage.assign( 
+            self._cImage * tf.sqrt( self._modulus / self._modulus_estimated )
+        )
+        return
+
+    def _updateBlurKenel( self ):
+        self._blurKernel = tf.reshape( 
+            tf.exp( -0.5 * tf.reduce_sum( self._q * tf.matmul( self._C, self._q ), axis=0 ) ), 
+            shape=self._support.shape
+        ) * ( self._l1 * self._l2 * self._l3 ) / ( 2. * np.pi )
+        self._blurKernel_f = tf.signal.fft3d( tf.cast( self._blurKernel, dtype=tf.complex64 ) )
+        return
+
+    def _setupDomain( self, gpack ):
+        x, y, z = tuple( fftshift( this ) for this in np.meshgrid( *[ np.arange( -n//2., n//2. ) for n in gpack[ 'support' ].shape ] ) )
         pts = np.concatenate( tuple( this.reshape( 1, -1 ) for this in [ x, y, z ] ), axis=0 )
         if 'initial_guess' not in gpack.keys():
-            l1p, l2p, l3p, psip, thetap, phip = 2., 2., 2., 0., 0., 0.
+            #l1p, l2p, l3p, psip, thetap, phip = 2., 2., 2., 0., 0., 0.
+            parm_list = 2., 2., 2., 0., 0., 0.
         else:
-            l1p, l2p, l3p, psip, thetap, phip = tuple( vardict[ 'initial_guess' ] )
+            parm_list = tuple( vardict[ 'initial_guess' ] )
+        return pts, parm_list
 
-        # tf constants
-        self._intensity = tf.constant( gpack[ 'modulus' ]**2, dtype=tf.
+    def _setupConstants( self, pts ):
         self._q = tf.constant( pts, dtype=tf.float32 )
-        self._v1, self._v2, self._v3 = tuple( 
+        self._v0, self._v1, self._v2 = tuple( 
             tf.constant( np.roll( np.array( [ 1., 0., 0. ] ).reshape( -1, 1 ), shift=n, axis=0 ), dtype=tf.float32 ) 
             for n in [ 0, 1, 2 ] 
         )
-
         self._nskew0 = tf.constant( np.array( [ [ 0., 0., 0. ], [ 0., 0., -1. ], [ 0., 1., 0. ] ] ), dtype=tf.float32 )
         self._nskew1 = tf.constant( np.array( [ [ 0., 0., 1. ], [ 0., 0., 0. ], [ -1., 0., 0. ] ] ), dtype=tf.float32 )
         self._nskew2 = tf.constant( np.array( [ [ 0., -1., 0. ], [ 1., 0., 0. ], [ 0., 0., 0. ] ] ), dtype=tf.float32 )
         self._I = tf.eye( 3 )
+        return
 
-        # tf variables
+    def _setupVariables( self, parm_list ):
+        #l1p, l2p, l3p, psip, thetap, phip = tuple( vardict[ 'initial_guess' ] )
         self._l1, self._l2, self._l3, self._psi, self._theta, self._phi = tuple( 
-            tf.Variable( this, dtype=tf.float32 ) for this in [ l1p, l2p, l3p, psip, thetap, phip ] 
+            tf.Variable( this, dtype=tf.float32 ) for this in parm_list
         )
-        self._mD = tf.diag( [ self._l1, self._l2, self._l3 ] )
+        self._mD = tf.linalg.diag( [ self._l1, self._l2, self._l3 ] )
         self._n0 = tf.sin( self._theta ) * tf.cos( self._phi )
         self._n1 = tf.sin( self._theta ) * tf.sin( self._phi )
         self._n2 = tf.cos( self._theta )
-        self._n elf._n0*self._v0 + self._n1*self._v1 + self._n2*self._v2
+        self._n  = self._n0*self._v0 + self._n1*self._v1 + self._n2*self._v2
         self._nskew = self._n0*self._nskew0 + self._n1*self._nskew1 + self._n2*self._nskew2
-        self._R = tf.cos( self._psi )*self._I +\
-            tf.sin( self._psi )*self._nskew +\
-            ( 1. - tf.cos( self._psi ) )*tf.matmul( self._n, tf.transpose( self._n ) )
+        self._R = tf.cos( self._psi )*self._I + tf.sin( self._psi )*self._nskew + ( 1. - tf.cos( self._psi ) )*tf.matmul( self._n, tf.transpose( self._n ) )
         self._C = tf.matmul( self._R, tf.matmul( tf.matmul( self._mD, self._mD ), tf.transpose( self._R ) ) )
-
-        self._blurKernel = tf.reshape( 
-            tf.exp( -0.5 * tf.reduce_sum( self._q * tf.matmul( self._C, self._q ), axis=0 ) ), 
-            shape=self._coherentEstimate.shape
-        ) * ( self._l1 * self._l2 * self._l3 ) / ( 2. * np.pi )
-        self._pkfft = tf.Variable( np.zeros( self._probSize ), dtype=tf.complex64, name='pkfft' )
-
-
+        self._updateBlurKenel()
+        self._modulus_estimated = tf.Variable( np.zeros( self._support.shape ), dtype=tf.complex64 )
         return
 
-
-
+    def _setupOptimizer( self ):
+        #self._var_list = [ self._l1, self._l2, self._l3, self._psi, self._theta, self._phi ]
+        return
