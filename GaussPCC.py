@@ -8,7 +8,7 @@
 #        Siddharth Maddali
 #        Argonne National Laboratory
 #        Oct 2019
-#        smaddali@alumni.cmu.edu
+#        6xlq96aeq@relay.firefox.com
 #
 ##############################################################
 
@@ -94,4 +94,5 @@ class Mixin:
 
     def _setupOptimizer( self ):
         #self._var_list = [ self._l1, self._l2, self._l3, self._psi, self._theta, self._phi ]
+        self._point = 
         return
