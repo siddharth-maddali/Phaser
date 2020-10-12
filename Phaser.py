@@ -58,7 +58,7 @@ class Phaser(
 
     def __init__( self,
             modulus,
-            support,
+#            support,
             beta=0.9, 
             binning=1,      # for high-energy CDI. Set to 1 for regular phase retrieval.
             gpu=False,
@@ -66,19 +66,18 @@ class Phaser(
             random_start=True 
             ):
         self._modulus           = fftshift( modulus )
-        self._support           = fftshift( support )
+        self._arraySize         = tuple( this*shp for this, shp in zip( [ binning, binning, 1 ], self._modulus.shape ) )
+        self._initializeSupport()
+        self._support_comp      = 1. - self._support
         self._beta              = beta
 
 #        self._modulus_sum       = modulus.sum()
-        self._support_comp      = 1. - support
+
         if random_start:
-            self._cImage            = np.exp( 2.j * np.pi * np.random.rand( 
-                                    binning*self._modulus.shape[0], 
-                                    binning*self._modulus.shape[1], 
-                                            self._modulus.shape[2]
-                                    ) ) * self._support
+            self._cImage            = np.exp( 2.j * np.pi * np.random.random_sample( self._arraySize ) ) * self._support
         else:
-            self._cImage            = 1. * support
+            self._cImage            = 1. * self._support
+
        
         self._cachedImage       = np.zeros( self._cImage.shape ).astype( complex )
         self._cImage_fft_mod = np.absolute( fftn( self._cImage ) )

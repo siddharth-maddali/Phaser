@@ -20,7 +20,7 @@ try:
 except:
     from numpy.fft import fftshift
 
-class Mixin: 
+class Mixin( tf.Module ): 
 
     def setUpPCC( self, gpack ):
         pts, parm_list = self._setupDomain( gpack=gpack )
@@ -77,9 +77,11 @@ class Mixin:
 
     def _setupVariables( self, parm_list ):
         #l1p, l2p, l3p, psip, thetap, phip = tuple( vardict[ 'initial_guess' ] )
-        self._l1, self._l2, self._l3, self._psi, self._theta, self._phi = tuple( 
-            tf.Variable( this, dtype=tf.float32 ) for this in parm_list
-        )
+        #self._l1, self._l2, self._l3, self._psi, self._theta, self._phi = tuple( 
+        #    tf.Variable( this, dtype=tf.float32 ) for this in parm_list
+        #)
+        self._l1, self._l2, self._l3, self._psi, self._theta, self._phi = op.Optimizer( parm_list ).getVariables()
+        
         self._mD = tf.linalg.diag( [ self._l1, self._l2, self._l3 ] )
         self._n0 = tf.sin( self._theta ) * tf.cos( self._phi )
         self._n1 = tf.sin( self._theta ) * tf.sin( self._phi )
@@ -94,5 +96,4 @@ class Mixin:
 
     def _setupOptimizer( self ):
         #self._var_list = [ self._l1, self._l2, self._l3, self._psi, self._theta, self._phi ]
-        self._point = 
         return
