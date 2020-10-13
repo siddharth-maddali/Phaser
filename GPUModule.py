@@ -34,8 +34,8 @@ class Solver(
         # see Phaser.py for definition of varDict
         self.ImportCore( varDict )
         self.generateAlgoDict()
-        print( varDict.keys() )
-        print( varDict[ 'pcc' ] )
+#        print( varDict.keys() )
+#        print( varDict[ 'pcc' ] )
         if varDict[ 'pcc' ]==True: 
             self.setUpPCC( varDict )
         return

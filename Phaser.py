@@ -46,9 +46,13 @@ except:
 # plugin modules
 import Core, RecipeParser
 import ER, HIO, SF
+import GaussPCC
+
+from GaussPCC import Solver as PCSolver
 
 
 class Phaser( 
+        GaussPCC.Mixin,         # New ER accounting for partial coherence
         Core.Mixin,             # core CPU algorithms and routines
         RecipeParser.Mixin,     # for handling recipe strings
         ER.Mixin,               # error reduction
@@ -58,7 +62,6 @@ class Phaser(
 
     def __init__( self,
             modulus,
-#            support,
             beta=0.9, 
             binning=1,      # for high-energy CDI. Set to 1 for regular phase retrieval.
             gpu=False,
@@ -70,8 +73,6 @@ class Phaser(
         self._initializeSupport()
         self._support_comp      = 1. - self._support
         self._beta              = beta
-
-#        self._modulus_sum       = modulus.sum()
 
         if random_start:
             self._cImage            = np.exp( 2.j * np.pi * np.random.random_sample( self._arraySize ) ) * self._support
@@ -89,6 +90,11 @@ class Phaser(
         if gpu==True:
             gpack = self.generateGPUPackage( pcc=pcc )
             self.gpusolver = accelerator.Solver( gpack )
+
+        if pcc==True:
+            self._pccSolver = PCSolver( np.absolute( self._modulus )**2, gpack )
+            self._kernel_f = self._pccSolver.getBlurKernel()
+            self._ModProject = self._ModProjectPC
 
         return
 
