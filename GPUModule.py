@@ -21,6 +21,8 @@ import GPUModule_Core, RecipeParser
 import ER, HIO, SF
 import GaussPCC
 
+from GaussPCC import PCSolver
+
 class Solver( 
         GPUModule_Core.Mixin, 
         RecipeParser.Mixin, 
@@ -30,14 +32,15 @@ class Solver(
         GaussPCC.Mixin
     ):
     
-    def __init__( self, varDict ):   
-        # see Phaser.py for definition of varDict
-        self.ImportCore( varDict )
+    def __init__( self, gpack ):   
+        # see Phaser.py for definition of gpack
+        self.ImportCore( gpack )
         self.generateAlgoDict()
-#        print( varDict.keys() )
-#        print( varDict[ 'pcc' ] )
-        if varDict[ 'pcc' ]==True: 
-            self.setUpPCC( varDict )
+        if gpack[ 'pcc' ]==True: 
+            self._pccSolver = PCSolver( np.absolute( self._modulus )**2, gpack )
+            self._kernel_f = self._pccSolver.getBlurKernel()
+            self._ModProject = self._ModProjectPC
+            self._algodict[ 'PCC' ] = self.PCC
         return
 
 
