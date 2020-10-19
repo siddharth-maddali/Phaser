@@ -139,23 +139,27 @@ class Mixin:
         return mydict
 
 # Initializes support as cube whose sides are input fraction of array dimension
-    def _initializeSupport( self, sigma=5./12. ):
-        self._support = np.zeros( self._arraySize )
-        grid = np.meshgrid( *[ np.arange( -n//2., n//2. ) for n in self._support.shape ] )
-        self._support[ 
-            np.where(
-                ftools.reduce( 
-                    np.logical_and, 
-                    [ 
-                        np.absolute( arr ) < shp*sigma//2. 
-                        for arr, shp in zip( grid, self._arraySize ) 
-                    ]
-                )
-            )
-        ] = 1.
-        self._support = fftshift( self._support )
+#    def _initializeSupport( self, sigma=5./12. ):
+#        self._support = np.zeros( self._arraySize )
+#        grid = np.meshgrid( *[ np.arange( -n//2., n//2. ) for n in self._support.shape ] )
+#        self._support[ 
+#            np.where(
+#                ftools.reduce( 
+#                    np.logical_and, 
+#                    [ 
+#                        np.absolute( arr ) < shp*sigma//2. 
+#                        for arr, shp in zip( grid, self._arraySize ) 
+#                    ]
+#                )
+#            )
+#        ] = 1.
+#        self._support = fftshift( self._support )
+#        return
+
+
+    def _initializeSupport( self, sigma=0.6 ):
+        fom = np.log10( np.absolute( fftn( self._modulus**2 ) ) )
+        self._support = ( fom > sigma * fom.max() ).astype( float )
         return
-
-
 
 

@@ -16,6 +16,11 @@ import functools as ftools
 
 import PostProcessing as post
 
+try:
+    from pyfftw.interfaces.numpy_fft import fftshift
+except: 
+    from numpy.fft import fftshift
+
 class Mixin: 
 
     def ImportCore( self, varDict ):
@@ -35,7 +40,7 @@ class Mixin:
 
         x, y, z = np.meshgrid( *[ np.arange( -n//2., n//2. ) for n in varDict[ 'support' ].shape ] )
         self._rsquared = tf.constant( 
-            ftools.reduce( lambda a, b: a+b, [ this**2 for this in [ x, y, z ] ] ), 
+            ftools.reduce( lambda a, b: a+b, [ fftshift( this )**2 for this in [ x, y, z ] ] ), 
             dtype=tf.complex64
         )
               # used for GPU shrinkwrap
@@ -74,7 +79,8 @@ class Mixin:
         kernel = 1. / ( sigma * np.sqrt( 2. * np.pi ) ) * tf.exp( -0.5 * self._rsquared / ( sigma**2 ) )
         kernel_ft = tf.signal.fft3d( kernel )
         ampl_ft = tf.signal.fft3d( tf.cast( tf.abs( self._cImage ), dtype=tf.complex64 ) )
-        blurred = tf.signal.fftshift( tf.abs( tf.signal.ifft3d( kernel_ft * ampl_ft ) ) )
+        #blurred = tf.signal.fftshift( tf.abs( tf.signal.ifft3d( kernel_ft * ampl_ft ) ) )
+        blurred = tf.abs( tf.signal.ifft3d( kernel_ft * ampl_ft ) )
         new_support = tf.where( blurred > thresh * tf.reduce_max( blurred ), 1., 0. )
         self.UpdateSupport( new_support )
         return

@@ -28,8 +28,13 @@ class Mixin: # inherited by Phaser module
 
     def _ModProjectPC( self ):
         self._patt = tf.signal.fft3d( tf.cast( tf.abs( tf.signal.fft3d( self._cImage ) )**2, dtype=tf.complex64 ) )
-        pcoh_est = tf.sqrt( tf.signal.ifft3d( self._patt * self._kernel_f ) )
-        self._cImage.assign( self._cImage * self._modulus / pcoh_est )
+        self._patt *= tf.reduce_sum( self._modulus ) / tf.reduce_sum( self._patt ) 
+        self._pcoh_est = tf.sqrt( tf.cast( tf.abs( tf.signal.ifft3d( self._patt * self._kernel_f ) ), dtype=tf.complex64 ) )
+        self._cImage.assign( 
+            tf.signal.ifft3d( 
+                tf.signal.fft3d( self._cImage ) * self._modulus / self._pcoh_est 
+            )
+        )
         return
 
     def PCC( self, n_iterations, show_progress=False ):
@@ -56,10 +61,6 @@ class PCSolver( tf.Module ):
 
     def _setupOptimizer( self, learning_rate, momentum ):
         self._optimizer = tf.optimizers.Adagrad( learning_rate=learning_rate )
-        #with tf.GradientTape( persistent=True ) as self.tape:
-        #with tf.GradientTape( persistent=True ) as self.tape:
-        #    for n in list( range( len( self.trainable_variables ) ) ):
-        #        self.tape.watch( self.trainable_variables[n] )
         return
 
     def _setCoherentEstimate( self, intensity ):
@@ -68,7 +69,7 @@ class PCSolver( tf.Module ):
 
     def getBlurKernel( self ):
         self._updateBlurKernel()
-        return tf.constant( self._blurKernel_f.numpy(), dtype=tf.complex64 )
+        return tf.constant( np.absolute( self._blurKernel_f.numpy() ), dtype=tf.complex64 )
 
     def _setupDomain( self, gpack ):
         x, y, z = tuple( fftshift( this ) for this in np.meshgrid( *[ np.arange( -n//2., n//2. ) for n in gpack[ 'support' ].shape ] ) )
@@ -116,7 +117,7 @@ class PCSolver( tf.Module ):
         self._blurKernel = tf.reshape( 
             tf.exp( -0.5 * tf.reduce_sum( self._q * tf.matmul( self._C, self._q ), axis=0 ) ), 
             shape=self._shape
-        ) * tf.reduce_prod( self.trainable_variables[0][:3] ) / ( 2. * np.pi )
+        ) * tf.reduce_prod( self.trainable_variables[0][:3] ) / ( ( 2. * np.pi )**( 3./2. ) )
         self._blurKernel_f = tf.signal.fft3d( tf.cast( self._blurKernel, dtype=tf.complex64 ) )
         return
     

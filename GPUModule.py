@@ -37,6 +37,7 @@ class Solver(
         self.ImportCore( gpack )
         self.generateAlgoDict()
         if gpack[ 'pcc' ]==True: 
+            self._cImage.assign( self._cImage * tf.cast( tf.reduce_sum( tf.abs( self._modulus )**2 ) / tf.reduce_sum( tf.abs( self._cImage )**2 ), dtype=tf.complex64 ) )
             self._pccSolver = PCSolver( np.absolute( self._modulus )**2, gpack )
             self._kernel_f = self._pccSolver.getBlurKernel()
             self._ModProject = self._ModProjectPC
