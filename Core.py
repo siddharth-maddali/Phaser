@@ -20,8 +20,11 @@ except:
     from numpy.fft import fftshift, fftn, ifftn
 
 from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage.morphology import binary_erosion
 
 import PostProcessing as post
+
+BEStruct = np.ones( ( 3, 3, 3 ) )   # structuring element for binary erosion
 
 class Mixin:
 
@@ -115,6 +118,8 @@ class Mixin:
         self._support = ( result > thresh*result.max() ).astype( float )
         self._support_comp = 1. - self._support
         return
+
+
 
 
 # The alignment operator that centers the object after phase retrieval.
