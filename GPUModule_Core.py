@@ -16,6 +16,8 @@ import functools as ftools
 
 import PostProcessing as post
 
+from Constants import BEStruct
+
 try:
     from pyfftw.interfaces.numpy_fft import fftshift
 except: 
@@ -33,7 +35,7 @@ class Mixin:
 
         self._modulus_sum = tf.reduce_sum( self._modulus )
         self._cImage_fft_mod = tf.Variable( tf.abs( tf.signal.fft3d( self._cImage ) ) )
-
+        self.BinaryErosion = self.BinaryErosionGPU
         self._error = []
         self._UpdateError()
 
@@ -44,6 +46,7 @@ class Mixin:
             dtype=tf.complex64
         )
               # used for GPU shrinkwrap
+
         return
 
     def _UpdateError( self ):
@@ -104,6 +107,15 @@ class Mixin:
            2. * ( self._support * self._cImage ) - self._cImage 
         )
         return
+
+    def BinaryErosionGPU( self, num_erosions=1 ):
+        self._support = tf.py_function( 
+            func=BinaryErosionCPU, 
+            inp=[ self._support, BEStruct, num_erosions ], 
+            Tout=tf.complex64 
+        )
+        return
+        
 
 
     def Retrieve( self ):

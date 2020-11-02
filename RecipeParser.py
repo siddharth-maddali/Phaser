@@ -15,6 +15,7 @@ class Mixin:
     
     def generateAlgoDict( self ):
         self._algodict = { # key = string, value = function handle
+            'BE':self.BinaryErosion,
             'ER':self.ER, 
             'HIO':self.HIO, 
             'SF':self.SF, 

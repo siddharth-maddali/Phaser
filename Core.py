@@ -24,7 +24,7 @@ from scipy.ndimage.morphology import binary_erosion
 
 import PostProcessing as post
 
-BEStruct = np.ones( ( 3, 3, 3 ) )   # structuring element for binary erosion
+from Constants import BEStruct
 
 class Mixin:
 
@@ -119,9 +119,6 @@ class Mixin:
         self._support_comp = 1. - self._support
         return
 
-
-
-
 # The alignment operator that centers the object after phase retrieval.
     def Retrieve( self ):
         self.finalImage = self._cImage
@@ -143,23 +140,12 @@ class Mixin:
         }
         return mydict
 
-# Initializes support as cube whose sides are input fraction of array dimension
-#    def _initializeSupport( self, sigma=5./12. ):
-#        self._support = np.zeros( self._arraySize )
-#        grid = np.meshgrid( *[ np.arange( -n//2., n//2. ) for n in self._support.shape ] )
-#        self._support[ 
-#            np.where(
-#                ftools.reduce( 
-#                    np.logical_and, 
-#                    [ 
-#                        np.absolute( arr ) < shp*sigma//2. 
-#                        for arr, shp in zip( grid, self._arraySize ) 
-#                    ]
-#                )
-#            )
-#        ] = 1.
-#        self._support = fftshift( self._support )
-#        return
+# CPU method for binary erosion
+    def BinaryErosionCPU( self, num_erosions=1 ):
+        temp = np.absolute( fftshift( self._support ) ).astype( bool )
+        eroded = binary_erosion( temp, structure=BEStruct, iterations=num_erosions )
+        self._support = fftshift( eroded.astype( complex ) )
+        return
 
 
     def _initializeSupport( self, sigma=0.6 ):

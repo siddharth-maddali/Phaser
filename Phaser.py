@@ -81,6 +81,7 @@ class Phaser(
         self._cImage_fft_mod = np.absolute( fftn( self._cImage ) )
 
         self._error             = []
+        self.BinaryErosion = self.BinaryErosionCPU
         self._UpdateError()
         self.generateAlgoDict()
 
