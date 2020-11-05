@@ -20,11 +20,8 @@ except:
     from numpy.fft import fftshift, fftn, ifftn
 
 from scipy.ndimage.filters import gaussian_filter
-from scipy.ndimage.morphology import binary_erosion
 
 import PostProcessing as post
-
-from Constants import BEStruct
 
 class Mixin:
 
@@ -139,13 +136,6 @@ class Mixin:
             'pcc':pcc
         }
         return mydict
-
-# CPU method for binary erosion
-    def BinaryErosionCPU( self, num_erosions=1 ):
-        temp = np.absolute( fftshift( self._support ) ).astype( bool )
-        eroded = binary_erosion( temp, structure=BEStruct, iterations=num_erosions )
-        self._support = fftshift( eroded.astype( complex ) )
-        return
 
 
     def _initializeSupport( self, sigma=0.6 ):

@@ -16,8 +16,6 @@ import functools as ftools
 
 import PostProcessing as post
 
-from Constants import BEStruct
-
 try:
     from pyfftw.interfaces.numpy_fft import fftshift
 except: 
@@ -107,16 +105,6 @@ class Mixin:
            2. * ( self._support * self._cImage ) - self._cImage 
         )
         return
-
-    def BinaryErosionGPU( self, num_erosions=1 ):
-        self._support = tf.py_function( 
-            func=BinaryErosionCPU, 
-            inp=[ self._support, BEStruct, num_erosions ], 
-            Tout=tf.complex64 
-        )
-        return
-        
-
 
     def Retrieve( self ):
         self.finalImage, self.finalSupport = post.centerObject( 

@@ -19,11 +19,12 @@ import PostProcessing as post
 # Class 'Solver' inherits methods from the mixins defined in the following modules.
 import GPUModule_Core, RecipeParser
 import ER, HIO, SF
-import GaussPCC
+import GaussPCC, Morphology
 
 from GaussPCC import PCSolver
 
 class Solver( 
+        Morphology.Mixin, 
         GPUModule_Core.Mixin, 
         RecipeParser.Mixin, 
         ER.Mixin, 

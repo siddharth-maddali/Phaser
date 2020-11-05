@@ -46,9 +46,10 @@ except:
 # plugin modules
 import Core, RecipeParser
 import ER, HIO, SF
-import GaussPCC
+import GaussPCC, Morphology
 
 class Phaser( 
+        Morphology.Mixin,       # Routines to manipulate object support
         GaussPCC.Mixin,         # New ER accounting for partial coherence
         Core.Mixin,             # core CPU algorithms and routines
         RecipeParser.Mixin,     # for handling recipe strings
