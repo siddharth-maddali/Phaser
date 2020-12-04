@@ -3,6 +3,8 @@
 <img align="right" src="1db4_star_trek_phaser_remote_replica.jpg" width=400>
 
 ## Created by: Siddharth Maddali
+<a href="https://doi.org/10.5281/zenodo.4305131"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.4305131.svg" alt="DOI"></a>
+
 
 ### This presentation, along with the Python modules, is available at:<br/>
 https://github.com/siddharth-maddali/Phaser
