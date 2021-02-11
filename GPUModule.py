@@ -34,6 +34,9 @@ class Solver(
     ):
     
     def __init__( self, gpack ):   
+
+        self.manageGPUMemory()
+
         # see Phaser.py for definition of gpack
         self.ImportCore( gpack )
         self.generateAlgoDict()
@@ -51,7 +54,13 @@ class Solver(
         return
 
 
-
+    def manageGPUMemory( self ):
+        physical_devices = tf.config.experimental.list_physical_devices( 'GPU' )
+        assert len(physical_devices) > 0, 'GPU(s) not found. '
+        self.__config__ = tf.config.experimental.set_memory_growth(
+            physical_devices[0], 
+            True
+        )
    
 
 

@@ -33,7 +33,7 @@ class Mixin:
 
         self._modulus_sum = tf.reduce_sum( self._modulus )
         self._cImage_fft_mod = tf.Variable( tf.abs( tf.signal.fft3d( self._cImage ) ) )
-        self.BinaryErosion = self.BinaryErosionGPU
+        self.BinaryErosion = self.__GPUErosion__
         self._error = []
         self._UpdateError()
 
