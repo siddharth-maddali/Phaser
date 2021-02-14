@@ -33,7 +33,7 @@ class Mixin:
         return
     
 # GPU method for binary erosion, wraps CPU method in Tensorflow
-    def __GPUErosion__( self, num_erosions=1 ):
+    def __GPUErosion__( self, num_erosions=1, kernel_size=[ 1, 3, 3, 2, 1 ] ):
 #        self._support = tf.py_function( 
 #            func=self.BinaryErosionCPU, 
 #            inp=[ num_erosions ], 
@@ -49,7 +49,7 @@ class Mixin:
         for n in range( num_erosions ):
             sup_rankraised = -tf.nn.max_pool3d( 
                 -sup_rankraised, 
-                ksize=[ 1, 3, 3, 3, 1 ], 
+                ksize=kernel_size, 
                 strides=1, 
                 padding='SAME'
             )
