@@ -57,11 +57,11 @@ class PCSolver( tf.Module ):
         self._setupVariables( parm_list )
         self._setupAuxiliary()
         self._updateBlurKernel()
-        self._setupOptimizer( learning_rate=0.01, momentum=0.98 )
+        self._setupOptimizer( learning_rate=0.1, momentum=0.99 )
         return
 
     def _setupOptimizer( self, learning_rate, momentum ):
-        self._optimizer = tf.optimizers.Adagrad( learning_rate=learning_rate )
+        self._optimizer = tf.optimizers.Adam( learning_rate=learning_rate )
         return
 
     def _setCoherentEstimate( self, intensity ):
@@ -77,7 +77,7 @@ class PCSolver( tf.Module ):
         pts = np.concatenate( tuple( this.reshape( 1, -1 ) for this in [ x, y, z ] ), axis=0 )
         if 'initial_guess' not in gpack.keys():
             #l1p, l2p, l3p, psip, thetap, phip = 2., 2., 2., 0., 0., 0.
-            parm_list = 4., 4., 4., 0., 0., 0.
+            parm_list = 3., 3., 3., 0., 0., 0.
         else:
             parm_list = tuple( vardict[ 'initial_guess' ] )
         return pts, parm_list

@@ -23,15 +23,17 @@ class Mixin:
         }
         return
 
-    def _parseBlock( self, blockstr ):
+    def _parseBlock( self, blockstr, show_progress ):
         lst = blockstr.split( ':' )
         conv = int if len( lst )==2 else float
-        self._algodict[ lst[0] ](
-            *tuple( [ conv( n ) for n in lst[1:] ] )
-        )
+        if lst[0]=='SR':
+            arglist = [ conv( n ) for n in lst[1:] ] # no progress bar for shrinkwrap
+        else:
+            arglist = [ conv( n ) for n in lst[1:] ] + [ show_progress ]
+        self._algodict[ lst[0] ]( *tuple( arglist ) )
         return
 
-    def runRecipe( self, recipestr ):
+    def runRecipe( self, recipestr, show_progress=False ):
         '''
         
         runRecipe( recipestr ):
@@ -67,7 +69,7 @@ class Mixin:
         
         '''
         [ 
-            self._parseBlock( block ) 
+            self._parseBlock( block, show_progress=show_progress ) 
             for block in recipestr.split( '+' ) 
         ];  # Don't remove this semicolon!
         return
