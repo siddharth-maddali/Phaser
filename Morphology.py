@@ -21,14 +21,15 @@ try:
 except:
     from numpy.fft import fftshift
 
-BEStruct = np.ones( ( 3, 3, 3 ) ) # structuring element for 3D binary erosion
+
 
 class Mixin:
+
 
 # CPU method for binary erosion
     def __CPUErosion__( self, num_erosions=1 ):
         temp = np.absolute( fftshift( self._support ) ).astype( bool )
-        eroded = binary_erosion( temp, structure=BEStruct, iterations=num_erosions )
+        eroded = binary_erosion( temp, structure=self.BEStruct, iterations=num_erosions )
         self._support = fftshift( eroded.astype( complex ) )
         return
     

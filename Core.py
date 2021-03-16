@@ -11,6 +11,8 @@
 #
 ##############################################################
 
+import collections
+
 import numpy as np
 import functools as ftools
 
@@ -20,6 +22,8 @@ except:
     from numpy.fft import fftshift, fftn, ifftn
 
 from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage.measurements import label
+
 
 import PostProcessing as post
 
@@ -138,9 +142,15 @@ class Mixin:
         return mydict
 
 
-    def _initializeSupport( self, sigma=0.6 ):
-        fom = np.log10( np.absolute( fftn( self._modulus**2 ) ) )
-        self._support = ( fom > sigma * fom.max() ).astype( float )
+    def _initializeSupport( self, sigma=0.575 ):
+        temp = np.log10( np.absolute( fftshift( fftn( self._modulus ) ) ) )
+        mask = ( temp > sigma*temp.max() ).astype( float )
+        labeled, features = label( mask )
+        support_label = list( dict( sorted( collections.Counter( labeled.ravel() ).items(), key=lambda item:-item[1] ) ).keys() )[1]
+        self._support = np.zeros( self._arraySize )
+        self._support[ np.where( labeled==support_label ) ] = 1.
+        self._support = fftshift( self._support )
+        self.BinaryErosion( 1 )
         return
 
 

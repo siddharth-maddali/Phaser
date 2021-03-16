@@ -60,15 +60,24 @@ class Phaser(
 
     def __init__( self,
             modulus,
+            support=None,   # if None, use default support 
             beta=0.9, 
             binning=1,      # for high-energy CDI. Set to 1 for regular phase retrieval.
             gpu=False,
             pcc=False,
             random_start=True 
             ):
+       
+        self.BEStruct           = np.ones( ( 3, 3, 3 ) ) # default structuring element for 3D binary erosion
+        self.BinaryErosion      = self.__CPUErosion__
+        
         self._modulus           = fftshift( modulus )
         self._arraySize         = tuple( this*shp for this, shp in zip( [ binning, binning, 1 ], self._modulus.shape ) )
-        self._initializeSupport()
+        if support is None:
+            self._initializeSupport()
+        else: 
+            self._support = fftshift( support )
+
         self._support_comp      = 1. - self._support
         self._beta              = beta
 
@@ -82,7 +91,7 @@ class Phaser(
         self._cImage_fft_mod = np.absolute( fftn( self._cImage ) )
 
         self._error             = []
-        self.BinaryErosion      = self.__CPUErosion__
+
         self._UpdateError()
         self.generateAlgoDict()
 

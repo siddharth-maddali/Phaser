@@ -57,7 +57,7 @@ class PCSolver( tf.Module ):
         self._setupVariables( parm_list )
         self._setupAuxiliary()
         self._updateBlurKernel()
-        self._setupOptimizer( learning_rate=0.1, momentum=0.99 )
+        self._setupOptimizer( learning_rate=0.01, momentum=0.99 )
         return
 
     def _setupOptimizer( self, learning_rate, momentum ):
@@ -77,7 +77,7 @@ class PCSolver( tf.Module ):
         pts = np.concatenate( tuple( this.reshape( 1, -1 ) for this in [ x, y, z ] ), axis=0 )
         if 'initial_guess' not in gpack.keys():
             #l1p, l2p, l3p, psip, thetap, phip = 2., 2., 2., 0., 0., 0.
-            parm_list = 3., 3., 3., 0., 0., 0.
+            parm_list = 0.5, 0.5, 0.5, 0., 0., 0.
         else:
             parm_list = tuple( vardict[ 'initial_guess' ] )
         return pts, parm_list
@@ -96,14 +96,14 @@ class PCSolver( tf.Module ):
 
     def _setupAuxiliary( self ):
         self._mD = tf.linalg.diag( self.trainable_variables[0][:3] )
-        self._n0 = tf.sin( self.trainable_variables[0][4] ) * tf.cos( self.trainable_variables[0][5] )
-        self._n1 = tf.sin( self.trainable_variables[0][4] ) * tf.sin( self.trainable_variables[0][5] )
-        self._n2 = tf.cos( self.trainable_variables[0][4] )
+        self._n0 = tf.sin( np.pi*self.trainable_variables[0][4] ) * tf.cos( 2.*np.pi*self.trainable_variables[0][5] )
+        self._n1 = tf.sin( np.pi*self.trainable_variables[0][4] ) * tf.sin( 2.*np.pi*self.trainable_variables[0][5] )
+        self._n2 = tf.cos( np.pi*self.trainable_variables[0][4] )
         self._n  = self._n0*self._v0 + self._n1*self._v1 + self._n2*self._v2
         self._nskew = self._n0*self._nskew0 + self._n1*self._nskew1 + self._n2*self._nskew2
-        self._R = tf.cos( self.trainable_variables[0][3] )*self._I +\
-                tf.sin( self.trainable_variables[0][3] )*self._nskew +\
-                ( 1. - tf.cos( self.trainable_variables[0][3] ) )*tf.matmul( self._n, tf.transpose( self._n ) )
+        self._R = tf.cos( np.pi*self.trainable_variables[0][3] )*self._I +\
+                tf.sin( np.pi*self.trainable_variables[0][3] )*self._nskew +\
+                ( 1. - tf.cos( np.pi*self.trainable_variables[0][3] ) )*tf.matmul( self._n, tf.transpose( self._n ) )
         self._C = tf.matmul( self._R, tf.matmul( tf.matmul( self._mD, self._mD ), tf.transpose( self._R ) ) )
         return
 
