@@ -150,7 +150,7 @@ class Mixin:
         self._support = np.zeros( self._arraySize )
         self._support[ np.where( labeled==support_label ) ] = 1.
         self._support = fftshift( self._support )
-        self.BinaryErosion( 1 )
+#        self.BinaryErosion( 1 )
         return
 
 
