@@ -1,0 +1,2 @@
+1. Partial coherence module built and tested, fits a Gaussian blurring kernel
+(S. Maddali et. al., Phys. Rev. Applied 14, 024085, 2020)
