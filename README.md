@@ -42,4 +42,4 @@ tensorflow==2.4.1
 
 # Quick start
 
-A full tutorial on using Phaser to reconstruct your BCDI data is available [here](https://nbviewer.jupyter.org/github/siddharth-maddali/Phaser/blob/master/tutorial.ipynb).
+A full tutorial on using Phaser to reconstruct your BCDI data is available [here](https://nbviewer.jupyter.org/github/siddharth-maddali/Phaser/blob/master/basic_tutorial.ipynb).
