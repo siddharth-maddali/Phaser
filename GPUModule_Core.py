@@ -6,7 +6,7 @@
 #    Siddharth Maddali
 #    Argonne National Laboratory 
 #    January 2020
-#    smaddali@alumni.cmu.edu
+#    6xlq96aeq@relay.firefox.com
 #
 ###########################################################
 
@@ -15,6 +15,11 @@ import numpy as np
 import functools as ftools
 
 import PostProcessing as post
+
+try:
+    from pyfftw.interfaces.numpy_fft import fftshift
+except: 
+    from numpy.fft import fftshift
 
 class Mixin: 
 
@@ -28,18 +33,18 @@ class Mixin:
 
         self._modulus_sum = tf.reduce_sum( self._modulus )
         self._cImage_fft_mod = tf.Variable( tf.abs( tf.signal.fft3d( self._cImage ) ) )
-
+        self.BinaryErosion = self.__GPUErosion__
         self._error = []
         self._UpdateError()
 
-        x, y, z = np.meshgrid( 
-            *[ np.linspace( -n//2, n//2-1, n ) for n in varDict[ 'support' ].shape ] 
-        )
+
+        x, y, z = np.meshgrid( *[ np.arange( -n//2., n//2. ) for n in varDict[ 'support' ].shape ] )
         self._rsquared = tf.constant( 
-            ftools.reduce( lambda a, b: a+b, [ this**2 for this in [ x, y, z ] ] ), 
+            ftools.reduce( lambda a, b: a+b, [ fftshift( this )**2 for this in [ x, y, z ] ] ), 
             dtype=tf.complex64
         )
               # used for GPU shrinkwrap
+
         return
 
     def _UpdateError( self ):
@@ -75,7 +80,8 @@ class Mixin:
         kernel = 1. / ( sigma * np.sqrt( 2. * np.pi ) ) * tf.exp( -0.5 * self._rsquared / ( sigma**2 ) )
         kernel_ft = tf.signal.fft3d( kernel )
         ampl_ft = tf.signal.fft3d( tf.cast( tf.abs( self._cImage ), dtype=tf.complex64 ) )
-        blurred = tf.signal.fftshift( tf.abs( tf.signal.ifft3d( kernel_ft * ampl_ft ) ) )
+        #blurred = tf.signal.fftshift( tf.abs( tf.signal.ifft3d( kernel_ft * ampl_ft ) ) )
+        blurred = tf.abs( tf.signal.ifft3d( kernel_ft * ampl_ft ) )
         new_support = tf.where( blurred > thresh * tf.reduce_max( blurred ), 1., 0. )
         self.UpdateSupport( new_support )
         return
@@ -99,7 +105,6 @@ class Mixin:
            2. * ( self._support * self._cImage ) - self._cImage 
         )
         return
-
 
     def Retrieve( self ):
         self.finalImage, self.finalSupport = post.centerObject( 

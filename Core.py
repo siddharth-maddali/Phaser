@@ -7,11 +7,14 @@
 #	    Siddharth Maddali
 #	    Argonne National Laboratory
 #	    Oct 2019
-#           smaddali@alumni.cmu.edu
+#           6xlq96aeq@relay.firefox.com
 #
 ##############################################################
 
+import collections
+
 import numpy as np
+import functools as ftools
 
 try: 
     from pyfftw.interfaces.numpy_fft import fftshift, fftn, ifftn
@@ -19,6 +22,8 @@ except:
     from numpy.fft import fftshift, fftn, ifftn
 
 from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage.measurements import label
+
 
 import PostProcessing as post
 
@@ -30,7 +35,7 @@ class Mixin:
         self._support_comp = 1. - self._support
         return
 
-# Writer function to manualy reset image
+# Writer function to manually reset image
     def ImageRestart( self, cImg, reset_error=True ):
         self._cImage = cImg
         if reset_error:
@@ -115,7 +120,6 @@ class Mixin:
         self._support_comp = 1. - self._support
         return
 
-
 # The alignment operator that centers the object after phase retrieval.
     def Retrieve( self ):
         self.finalImage = self._cImage
@@ -126,11 +130,27 @@ class Mixin:
         return
 
 # Generates a package for the GPU module to read and generate tensors.
-    def generateGPUPackage( self ):
+    def generateGPUPackage( self, pcc=False ):
         mydict = { 
+            'array_shape':self._support.shape,
             'modulus':self._modulus, 
             'support':self._support, 
             'beta':self._beta, 
-            'cImage':self._cImage
+            'cImage':self._cImage,
+            'pcc':pcc
         }
         return mydict
+
+
+    def _initializeSupport( self, sigma=0.575 ):
+        temp = np.log10( np.absolute( fftshift( fftn( self._modulus ) ) ) )
+        mask = ( temp > sigma*temp.max() ).astype( float )
+        labeled, features = label( mask )
+        support_label = list( dict( sorted( collections.Counter( labeled.ravel() ).items(), key=lambda item:-item[1] ) ).keys() )[1]
+        self._support = np.zeros( self._arraySize )
+        self._support[ np.where( labeled==support_label ) ] = 1.
+        self._support = fftshift( self._support )
+#        self.BinaryErosion( 1 )
+        return
+
+
