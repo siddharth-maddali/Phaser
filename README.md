@@ -7,7 +7,7 @@
 ## Created by: Siddharth Maddali
 ### Argonne National Laboratory
 
-<a href="https://doi.org/10.5281/zenodo.4305131" style="float: left;"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.4305131.svg" alt="DOI"></a>
+<a href="https://doi.org/10.5281/zenodo.4305130" style="float: left;"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.4305130.svg" alt="DOI"></a>
 
 
    # Introduction
