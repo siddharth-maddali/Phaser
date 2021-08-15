@@ -10,7 +10,7 @@
 <a href="https://doi.org/10.5281/zenodo.4305130" style="float: left;"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.4305130.svg" alt="DOI"></a>
 
 
-   # Introduction
+# Introduction
    - Basic Python tutorial of module `Phaser` for BCDI phase retrieval.
 
    - Contains diffraction geometry modules for the 34-ID-C setup at the Advanced Photon Source.
