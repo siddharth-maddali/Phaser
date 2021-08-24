@@ -75,11 +75,10 @@ class PCSolver( tf.Module ):
     def _setupDomain( self, gpack ):
         x, y, z = tuple( fftshift( this ) for this in np.meshgrid( *[ np.arange( -n//2., n//2. ) for n in gpack[ 'support' ].shape ] ) )
         pts = np.concatenate( tuple( this.reshape( 1, -1 ) for this in [ x, y, z ] ), axis=0 )
-        if 'initial_guess' not in gpack.keys():
-            #l1p, l2p, l3p, psip, thetap, phip = 2., 2., 2., 0., 0., 0.
+        if 'pcc_params' not in gpack.keys():
             parm_list = 0.5, 0.5, 0.5, 0., 0., 0.
         else:
-            parm_list = tuple( vardict[ 'initial_guess' ] )
+            parm_list = tuple( vardict[ 'pcc_params' ] )
         return pts, parm_list
 
     def _setupConstants( self, pts ):
@@ -109,9 +108,6 @@ class PCSolver( tf.Module ):
 
 
     def _setupVariables( self, parm_list ):
-        #self._l1, self._l2, self._l3, self._psi, self._theta, self._phi = tuple( 
-        #    tf.Variable( this, dtype=tf.float32 ) for this in parm_list
-        #)
         self._vars = tf.Variable( np.array( parm_list ), dtype=tf.float32 )
         return
 
@@ -151,8 +147,6 @@ class PCSolver( tf.Module ):
                 objfun = self.Objective()
 
             gradient = tape.gradient( objfun, self.trainable_variables )
-            #print( objfun )
-            #print( gradient )
             self._optimizer.apply_gradients( zip( gradient, self.trainable_variables ) )
             
         return

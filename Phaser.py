@@ -60,11 +60,12 @@ class Phaser(
 
     def __init__( self,
             modulus,
-            support=None,   # if None, use default support 
+            support=None,       # if None, use default support 
             beta=0.9, 
-            binning=1,      # for high-energy CDI. Set to 1 for regular phase retrieval.
+            binning=1,          # for high-energy CDI. Set to 1 for regular phase retrieval.
             gpu=False,
             pcc=False,
+            pcc_params=None,    # user-defined coherence function parameters
             random_start=True 
             ):
        
@@ -96,7 +97,7 @@ class Phaser(
         self.generateAlgoDict()
 
         if gpu==True:
-            gpack = self.generateGPUPackage( pcc=pcc )
+            gpack = self.generateGPUPackage( pcc=pcc, pcc_params=pcc_params )
             self.gpusolver = accelerator.Solver( gpack )
 
         #if pcc==True:
