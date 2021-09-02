@@ -8,6 +8,10 @@
 ##############################################################
 
 import numpy as np
+try:
+    from pyfftw.interfaces.numpy_fft import fftshift, fftn, ifftn
+except: 
+    from numpy.fft import fftshift, fftn, ifftn
 
 def centerObject( img, sup ):
     
@@ -36,6 +40,14 @@ def centerObject( img, sup ):
         imgC = np.roll( imgC, imgC.shape[n]//2 - c[n], axis=n )
         supC = np.roll( supC, supC.shape[n]//2 - c[n], axis=n )
 
+
+    fimg = fftshift( fftn( fftshift( imgC ) ) )
+    intens = np.absolute( fimg )**2
+    maxHere = np.where( intens==intens.max() )
+    for n in range( len ( img.shape ) ):
+        fimg = np.roll( fimg, fimg.shape[n]//2-maxHere[n], axis=n )
+        supC = np.roll( supC, supC.shape[n]//2-maxHere[n], axis=n )
+    imgC = fftshift( ifftn( fftshift( fimg ) ) )
 
     return imgC, supC
 

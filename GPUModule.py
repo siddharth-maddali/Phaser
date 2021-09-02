@@ -12,6 +12,7 @@
 import numpy as np
 import tensorflow as tf
 
+import os
 import time
 
 import PostProcessing as post
@@ -22,6 +23,8 @@ import ER, HIO, SF
 import GaussPCC, Morphology
 
 from GaussPCC import PCSolver
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # suppresses all Tensorflow terminal messages
 
 class Solver( 
         Morphology.Mixin, 

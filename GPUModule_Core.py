@@ -47,6 +47,16 @@ class Mixin:
 
         return
 
+    def ImageRestart( self, cImg, fSup, reset_error=True ):
+        self._cImage = tf.Variable( fftshift( cImg ), dtype=tf.complex64 )
+        self._support = tf.Variable( fftshift( fSup ), dtype=tf.complex64 )
+        if reset_error:
+            self._error = []
+        return
+    
+    def Modulus( self ):
+        return np.absolute( tf.signal.fftshift( tf.signal.fft3d( self._cImage ) ).numpy() )
+
     def _UpdateError( self ):
         self._error.append( 
             tf.reduce_sum(

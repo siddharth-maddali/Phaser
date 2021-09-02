@@ -37,15 +37,15 @@ if rank==0:
     sys.stdout.flush()
 
 # number of generations to breed forward
-numGenerations = 7
+numGenerations = 30
 
 ############# USER EDIT #########################
 
 # define phase retrieval recipe string here
-er1 = 'ER:5+'+'+ER:5+'.join( [ 'SR:%.1f:0.1'%sig    for sig in np.linspace( 3., 2., 7 ) ] )+'+ER:5'
-sf  = 'ER:5+'+'+ER:5+'.join( [ 'SR:%.1f:0.1'%sig    for sig in np.linspace( 2., 1., 3 ) ] )+'+ER:5'
-er2 = 'ER:5+'+'+ER:5+'.join( [ 'SR:1.:0.1'          for sig in np.linspace( 1., 1., 3 ) ] )+'+ER:5'
-recipe = er1 + '+HIO:50+' + sf + '+' + er2
+er1 = 'ER:5+'+'+ER:20+'.join( [ 'SR:%.1f:0.1'%sig    for sig in np.linspace( 3., 2., 7 ) ] )+'+ER:5'
+sf  = 'ER:5+'+'+ER:20+'.join( [ 'SR:%.1f:0.1'%sig    for sig in np.linspace( 2., 1., 3 ) ] )+'+ER:5'
+er2 = 'ER:5+'+'+ER:20+'.join( [ 'SR:1.:0.1'          for sig in np.linspace( 1., 1., 3 ) ] )+'+ER:5'
+recipe = er1 + '+HIO:100+' + sf + '+HIO:100+' + er2
 
 # load data set
 signal = Namespace( **sio.loadmat( 'singleScrewDislocation.mat' ) ).signal
@@ -71,9 +71,10 @@ time.sleep( 1 )
 # initialize worker pool
 workID = 'Worker-%d'%rank
 worker = ph.Phaser( 
+    gpu=True,
     modulus=np.sqrt( signal ), 
     support=supInit.copy()
-)
+).gpusolver
 print( '%s: Online. '%workID )
 sys.stdout.flush()
 
@@ -106,24 +107,29 @@ for generation in list( range( numGenerations ) ):
         winning_rank = None
 	
     winning_rank = comm.bcast( winning_rank, root=0 )
+    #print( '%s: Winning rank = %d'%( workID, winning_rank ) )
     if rank==0 and generation < numGenerations-1:
         print( 'Breeding solution %d into the others...'%winning_rank )
         sys.stdout.flush() 
 
     if rank==winning_rank:
-        winning_img = img
-        new_sup = sup
+        winning_img = img.copy()
+        new_sup = sup.copy()
     else:
-        winning_img = np.empty( img.shape, dtype=complex )
-        new_sup = np.empty( sup.shape, dtype=float )
+        winning_img = np.empty( img.shape, dtype=np.complex64 )
+        new_sup = np.empty( sup.shape, dtype=np.float32 )
+
+    #print( '%s: '%workID, winning_img.dtype, new_sup.dtype )
 
     comm.Bcast( winning_img, root=winning_rank )
-    new_img = np.sqrt( winning_img * img )
-    
     comm.Bcast( new_sup, root=winning_rank )
+    #print( '%s: Debug point...'%workID )
+
+    new_img = np.sqrt( winning_img * img )
     new_sup = ( new_sup + sup > 0.5 ).astype( float ) # the union of two supports
     
     worker.ImageRestart( new_img, new_sup )
+
 
 if rank==winning_rank:
     print( 'Final solution: worker %d. '%rank )
