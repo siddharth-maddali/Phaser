@@ -1,9 +1,14 @@
 #####################################################################
 #
-#    Guided_GPU.py: 
+#    Guided_PCC.py: 
 #        Script demonstrating parallelized implementation of 
-#        Phaser using genetic algorithms. Implemented with 
+#        Phaser+PCC using genetic algorithms. Implemented with 
 #        tensorflow-gpu and mpi4py.
+#
+#    NOTE: 
+#        The partial coherence function of the winning worker is
+#        shared between all workers for the next iteration.
+#
 #
 #        Siddharth Maddali
 #        Argonne National Laboratory
@@ -36,16 +41,17 @@ if rank==0:
     print( '\nParallelizing on %d workers. '%size )
     sys.stdout.flush()
 
+############# USER EDIT #########################
+
 # number of generations to breed forward
 numGenerations = 30
 
-############# USER EDIT #########################
-
-# define phase retrieval recipe string here
-er1 = 'ER:5+'+'+ER:20+'.join( [ 'SR:%.1f:0.1'%sig    for sig in np.linspace( 3., 2., 7 ) ] )+'+ER:5'
-sf  = 'ER:5+'+'+ER:20+'.join( [ 'SR:%.1f:0.1'%sig    for sig in np.linspace( 2., 1., 3 ) ] )+'+ER:5'
-er2 = 'ER:5+'+'+ER:20+'.join( [ 'SR:1.:0.1'          for sig in np.linspace( 1., 1., 3 ) ] )+'+ER:5'
-recipe = er1 + '+HIO:100+' + sf + '+HIO:100+' + er2
+# phase retrieval recipe used by all parallel workers
+wave_1 = '+'.join( [ 'ER:10+SR:%.2f:0.1+ER:5+PCC:10'%sig for sig in np.linspace( 3., 1., 20 ) ] ) # support should have converged pretty well by now
+wave_2 = '+'.join( [ 'ER:10+PCC:200+ER:10' ] * 5 )
+wave_3 = '+'.join( [ 'ER:200+SR:1.0:0.1' ] * 5 )
+wave_4 = 'ER:200'
+recipe = '+'.join( [ wave_1, wave_2, wave_3, wave_4 ] )
 
 # load data set
 signal = Namespace( **sio.loadmat( 'singleScrewDislocation.mat' ) ).signal

@@ -12,9 +12,6 @@
 import numpy as np
 import tensorflow as tf
 
-import os
-import time
-
 import PostProcessing as post
 
 # Class 'Solver' inherits methods from the mixins defined in the following modules.
@@ -23,8 +20,6 @@ import ER, HIO, SF
 import GaussPCC, Morphology
 
 from GaussPCC import PCSolver
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # suppresses all Tensorflow terminal messages
 
 class Solver( 
         Morphology.Mixin, 
@@ -44,10 +39,13 @@ class Solver(
         self.ImportCore( gpack )
         self.generateAlgoDict()
         if gpack[ 'pcc' ]==True: 
-            #self._cImage.assign( self._cImage * tf.cast( tf.reduce_sum( tf.abs( self._modulus )**2 ) / tf.reduce_sum( tf.abs( self._cImage )**2 ), dtype=tf.complex64 ) )
             self._cImage.assign( 
                 self._cImage * tf.sqrt( 
-                    tf.reduce_sum( tf.cast( tf.abs( self._modulus ), dtype=tf.complex64 ) ) / tf.reduce_sum( tf.cast( tf.abs( tf.signal.fft3d( self._cImage ) )**2, dtype=tf.complex64 ) )
+                    tf.reduce_sum( 
+                        tf.cast( tf.abs( self._modulus ), dtype=tf.complex64 ) 
+                    ) / tf.reduce_sum( 
+                        tf.cast( tf.abs( tf.signal.fft3d( self._cImage ) )**2, dtype=tf.complex64 ) 
+                    )
                 )
             )
             self._pccSolver = PCSolver( np.absolute( self._modulus )**2, gpack )

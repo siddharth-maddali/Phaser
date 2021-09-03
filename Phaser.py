@@ -60,6 +60,8 @@
 import numpy as np
 import GPUModule as accelerator
 
+import os
+
 try:
     from pyfftw.interfaces.numpy_fft import fftshift, fftn, ifftn
 except: 
@@ -69,6 +71,9 @@ except:
 import Core, RecipeParser
 import ER, HIO, SF
 import GaussPCC, Morphology
+
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # suppresses all Tensorflow terminal messages
 
 class Phaser( 
         Morphology.Mixin,       # Routines to manipulate object support

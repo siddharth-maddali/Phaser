@@ -132,6 +132,8 @@ class Mixin:
 
 # Generates a package for the GPU module to read and generate tensors.
     def generateGPUPackage( self, pcc=False, pcc_params=None ):
+        if pcc_params==None:
+            pcc_params =  np.array( [ 1., 1., 1., 0., 0., 0. ] )
         mydict = { 
             'array_shape':self._support.shape,
             'modulus':self._modulus, 

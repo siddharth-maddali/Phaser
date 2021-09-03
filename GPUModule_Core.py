@@ -15,6 +15,7 @@ import numpy as np
 import functools as ftools
 
 import PostProcessing as post
+from scipy.spatial.transform import Rotation
 
 try:
     from pyfftw.interfaces.numpy_fft import fftshift
@@ -52,6 +53,12 @@ class Mixin:
         self._support = tf.Variable( fftshift( fSup ), dtype=tf.complex64 )
         if reset_error:
             self._error = []
+        return
+
+    def resetParameterList( self, arr ):
+        self._pccSolver._resetParameterList( arr )
+        return
+
         return
     
     def Modulus( self ):
@@ -120,4 +127,26 @@ class Mixin:
         self.finalImage, self.finalSupport = post.centerObject( 
             self._cImage.numpy(), np.absolute( self._support.numpy() )
         )
+        if hasattr( self, '_pccSolver' ):
+            self.pccParameters = self._pccSolver.trainable_variables[0].numpy()
         return
+
+    def getCovarianceMatrix( self ):
+        try:
+            ln = self.pccParameters.size
+        except NameError: # pccParameters does not exist yet
+            self.pccParameters = self._pccSolver.trainable_variables[0].numpy()
+        
+        evalues = np.diag( self.pccParameters[:3] )**2
+        ang = self.pccParameters[3] # rotation angle in radians
+        th, ph = tuple( self.pccParameters[4:] )
+        ax = np.array( 
+            [ 
+                np.sin( th ) * np.cos( ph ), 
+                np.sin( th ) * np.sin( ph ), 
+                np.cos( th )
+            ]
+        )
+        evectors = Rotation.from_rotvec( ang*ax ).as_matrix()
+        C = evectors @ evalues @ evectors.T
+        return C

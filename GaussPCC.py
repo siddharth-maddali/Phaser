@@ -51,10 +51,10 @@ class PCSolver( tf.Module ):
     def __init__( self, measured_intensity, gpack ):
         self._shape = gpack[ 'array_shape' ]        
         self._modulus_measured = tf.constant( np.sqrt( measured_intensity ), dtype=tf.float32 )
-        pts, parm_list = self._setupDomain( gpack=gpack )
+        pts = self._setupDomain( gpack=gpack )
         self._setupConstants( pts )
         self._setCoherentEstimate( np.absolute( fftn( gpack[ 'cImage' ] ) )**2 )
-        self._setupVariables( parm_list )
+        self._setupVariables()
         self._setupAuxiliary()
         self._updateBlurKernel()
         self._setupOptimizer( learning_rate=0.01, momentum=0.99 )
@@ -75,11 +75,12 @@ class PCSolver( tf.Module ):
     def _setupDomain( self, gpack ):
         x, y, z = tuple( fftshift( this ) for this in np.meshgrid( *[ np.arange( -n//2., n//2. ) for n in gpack[ 'support' ].shape ] ) )
         pts = np.concatenate( tuple( this.reshape( 1, -1 ) for this in [ x, y, z ] ), axis=0 )
-        if 'pcc_params' not in gpack.keys():
-            parm_list = 0.5, 0.5, 0.5, 0., 0., 0.
-        else:
-            parm_list = tuple( vardict[ 'pcc_params' ] )
-        return pts, parm_list
+        self.parm_list = tuple( gpack[ 'pcc_params' ] )
+        return pts
+
+    def _resetParameterList( self, arr ):
+        self.parm_list = tuple( arr )
+        return
 
     def _setupConstants( self, pts ):
         self._q = tf.constant( pts, dtype=tf.float32 )
@@ -107,8 +108,8 @@ class PCSolver( tf.Module ):
         return
 
 
-    def _setupVariables( self, parm_list ):
-        self._vars = tf.Variable( np.array( parm_list ), dtype=tf.float32 )
+    def _setupVariables( self ):
+        self._vars = tf.Variable( np.array( self.parm_list ), dtype=tf.float32 )
         return
 
     #@tf.function       # don't do this, it messes with eager execution
@@ -137,8 +138,6 @@ class PCSolver( tf.Module ):
             allIterations = tqdm( list( range( iterations ) ), desc='PCC' )
         else:
             allIterations = list( range( iterations ) )
-        
-
 
         for n in allIterations: 
             with tf.GradientTape( persistent=True ) as tape:
