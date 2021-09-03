@@ -128,7 +128,7 @@ for generation in list( range( numGenerations ) ):
     new_img = np.sqrt( winning_img * img )
     new_sup = ( new_sup + sup > 0.5 ).astype( float ) # the union of two supports
     
-    worker.ImageRestart( new_img, new_sup )
+    worker.resetImage( new_img, new_sup )
 
 
 if rank==winning_rank:

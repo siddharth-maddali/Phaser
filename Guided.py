@@ -123,7 +123,7 @@ for generation in list( range( numGenerations ) ):
     comm.Bcast( new_sup, root=winning_rank )
     new_sup = ( new_sup + sup > 0.5 ).astype( float ) # the union of two supports
     
-    worker.ImageRestart( new_img, new_sup )
+    worker.resetImage( new_img, new_sup )
 
 if rank==winning_rank:
     print( 'Final solution: worker %d. '%rank )

@@ -36,7 +36,7 @@ class Mixin:
         return
 
 # Writer function to manually reset image
-    def ImageRestart( self, cImg, fSup, reset_error=True ):
+    def resetImage( self, cImg, fSup, reset_error=True ):
         self._cImage = fftshift( cImg )
         self._support = fftshift( fSup )
         if reset_error:

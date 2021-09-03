@@ -48,7 +48,7 @@ class Mixin:
 
         return
 
-    def ImageRestart( self, cImg, fSup, reset_error=True ):
+    def resetImage( self, cImg, fSup, reset_error=True ):
         self._cImage = tf.Variable( fftshift( cImg ), dtype=tf.complex64 )
         self._support = tf.Variable( fftshift( fSup ), dtype=tf.complex64 )
         if reset_error:

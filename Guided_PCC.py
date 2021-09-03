@@ -44,23 +44,23 @@ if rank==0:
 ############# USER EDIT #########################
 
 # number of generations to breed forward
-numGenerations = 30
+numGenerations = 10
 
 # phase retrieval recipe used by all parallel workers
-wave_1 = '+'.join( [ 'ER:10+SR:%.2f:0.1+ER:5+PCC:10'%sig for sig in np.linspace( 3., 1., 20 ) ] ) # support should have converged pretty well by now
-wave_2 = '+'.join( [ 'ER:10+PCC:200+ER:10' ] * 5 )
-wave_3 = '+'.join( [ 'ER:200+SR:1.0:0.1' ] * 5 )
+wave_1 = '+'.join( [ 'ER:5+SR:%.2f:0.1+ER:5+PCC:10'%sig for sig in np.linspace( 3., 1., 20 ) ] ) # support should have converged pretty well by now
+wave_2 = '+'.join( [ 'ER:50+SR:1.0:0.1+ER:50+PCC:200' ] * 5 )
+wave_3 = '+'.join( [ 'ER:50+SR:1.0:0.1' ] * 5 )
 wave_4 = 'ER:200'
 recipe = '+'.join( [ wave_1, wave_2, wave_3, wave_4 ] )
 
 # load data set
-signal = Namespace( **sio.loadmat( 'singleScrewDislocation.mat' ) ).signal
+signal = Namespace( **sio.loadmat( 'data.mat' ) ).signal
 
 # choose comparison metric for solutions
 figureOfMerit = fom.Chi
 
 # output .mat file
-outfile = 'guidedResult.mat'
+outfile = 'guidedResult_pcc.mat'
 
 #################################################
 
@@ -78,6 +78,7 @@ time.sleep( 1 )
 workID = 'Worker-%d'%rank
 worker = ph.Phaser( 
     gpu=True,
+    pcc=True,
     modulus=np.sqrt( signal ), 
     support=supInit.copy()
 ).gpusolver
@@ -98,6 +99,7 @@ for generation in list( range( numGenerations ) ):
 
     img = worker.finalImage
     sup = worker.finalSupport
+    pcc = worker.pccParameters # winning paremeters shared with all workers
     fm = figureOfMerit( worker.Modulus(), np.sqrt( signal )  )
 
     print( '%s: Phased in '%workID, tstop-tstart, ', cost = %.2f'%fm  )
@@ -121,20 +123,21 @@ for generation in list( range( numGenerations ) ):
     if rank==winning_rank:
         winning_img = img.copy()
         new_sup = sup.copy()
+        winning_pcc = pcc.copy()
     else:
         winning_img = np.empty( img.shape, dtype=np.complex64 )
         new_sup = np.empty( sup.shape, dtype=np.float32 )
-
-    #print( '%s: '%workID, winning_img.dtype, new_sup.dtype )
+        winning_pcc = np.empty( pcc.shape, dtype=np.float32 )
 
     comm.Bcast( winning_img, root=winning_rank )
     comm.Bcast( new_sup, root=winning_rank )
-    #print( '%s: Debug point...'%workID )
-
+    comm.Bcast( winning_pcc, root=winning_rank )
+    
     new_img = np.sqrt( winning_img * img )
     new_sup = ( new_sup + sup > 0.5 ).astype( float ) # the union of two supports
     
-    worker.ImageRestart( new_img, new_sup )
+    worker.resetImage( new_img, new_sup )
+    worker.resetParameterList( winning_pcc ) 
 
 
 if rank==winning_rank:
@@ -143,7 +146,8 @@ if rank==winning_rank:
         outfile, 
         { 
             'img':new_img, 
-            'sup':new_sup
+            'sup':new_sup,
+            'cov':worker.getCovarianceMatrix()
         }
     )
     print( 'Dumped final solution to %s. '%outfile )

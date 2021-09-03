@@ -29,7 +29,6 @@ class Mixin: # inherited by Phaser module
     def _ModProjectPC( self ):
         self._cImage_f = tf.signal.fft3d( self._cImage )
         self._patt = tf.signal.fft3d( tf.cast( tf.abs( self._cImage_f )**2, dtype=tf.complex64 ) )
-        #self._patt.assign( self._patt * tf.reduce_sum( self._modulus ) / tf.reduce_sum( self._patt )  )
         self._pcoh_est = tf.sqrt( tf.cast( tf.abs( tf.signal.ifft3d( self._patt * self._kernel_f ) ), dtype=tf.complex64 ) )
         self._cImage.assign( 
             tf.signal.ifft3d( 
@@ -80,6 +79,9 @@ class PCSolver( tf.Module ):
 
     def _resetParameterList( self, arr ):
         self.parm_list = tuple( arr )
+        self._setupVariables()
+        self._setupAuxiliary()
+        self._updateBlurKernel()
         return
 
     def _setupConstants( self, pts ):
