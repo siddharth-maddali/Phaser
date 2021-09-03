@@ -42,10 +42,12 @@ numGenerations = 30
 ############# USER EDIT #########################
 
 # define phase retrieval recipe string here
-er1 = 'ER:5+'+'+ER:20+'.join( [ 'SR:%.1f:0.1'%sig    for sig in np.linspace( 3., 2., 7 ) ] )+'+ER:5'
-sf  = 'ER:5+'+'+ER:20+'.join( [ 'SR:%.1f:0.1'%sig    for sig in np.linspace( 2., 1., 3 ) ] )+'+ER:5'
-er2 = 'ER:5+'+'+ER:20+'.join( [ 'SR:1.:0.1'          for sig in np.linspace( 1., 1., 3 ) ] )+'+ER:5'
-recipe = er1 + '+HIO:100+' + sf + '+HIO:100+' + er2
+#er1 = 'ER:5+'+'+ER:20+'.join( [ 'SR:%.1f:0.1'%sig    for sig in np.linspace( 3., 2., 7 ) ] )+'+ER:5'
+#sf  = 'ER:5+'+'+ER:20+'.join( [ 'SR:%.1f:0.1'%sig    for sig in np.linspace( 2., 1., 3 ) ] )+'+ER:5'
+#er2 = 'ER:5+'+'+ER:20+'.join( [ 'SR:1.:0.1'          for sig in np.linspace( 1., 1., 3 ) ] )+'+ER:5'
+#recipe = er1 + '+HIO:100+' + sf + '+HIO:100+' + er2
+
+recipe = 'ER:10'
 
 # load data set
 signal = Namespace( **sio.loadmat( 'singleScrewDislocation.mat' ) ).signal
