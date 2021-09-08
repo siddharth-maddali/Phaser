@@ -60,7 +60,7 @@ class Solver(
         assert len(physical_devices) > 0, 'GPU(s) not found. '
         for this_device in physical_devices:
             tf.config.experimental.set_memory_growth( this_device, True )
-   
+        return
 
 
 
