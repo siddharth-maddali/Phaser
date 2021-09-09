@@ -74,7 +74,10 @@ class PCSolver( tf.Module ):
     def _setupDomain( self, gpack ):
         x, y, z = tuple( fftshift( this ) for this in np.meshgrid( *[ np.arange( -n//2., n//2. ) for n in gpack[ 'support' ].shape ] ) )
         pts = np.concatenate( tuple( this.reshape( 1, -1 ) for this in [ x, y, z ] ), axis=0 )
-        self.parm_list = tuple( gpack[ 'pcc_params' ] )
+        if isinstance( gpack[ 'pcc_params' ], type( None ) ):
+            self.parm_list = 0.5, 0.5, 0.5, 0., 0., 0.
+        else:
+            self.parm_list = tuple( gpack[ 'pcc_params' ] )
         return pts
 
     def _resetParameterList( self, arr ):
