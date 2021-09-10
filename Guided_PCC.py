@@ -47,11 +47,12 @@ if rank==0:
 numGenerations = 10
 
 # phase retrieval recipe used by all parallel workers
-wave_1 = '+'.join( [ 'ER:5+SR:%.2f:0.1+ER:5+PCC:10'%sig for sig in np.linspace( 3., 1., 20 ) ] ) # support should have converged pretty well by now
-wave_2 = '+'.join( [ 'ER:50+SR:1.0:0.1+ER:50+PCC:200' ] * 5 )
+wave_1 = '+'.join( [ 'ER:20+SR:%.2f:0.1+ER:10+PCC:10'%sig for sig in np.linspace( 3., 1., 20 ) ] ) # support should have converged pretty well by now
+wave_2 = '+'.join( [ 'ER:50+SR:1.0:0.1+ER:50+PCC:50' ] * 5 )
 wave_3 = '+'.join( [ 'ER:50+SR:1.0:0.1' ] * 5 )
-wave_4 = 'ER:200'
-recipe = '+'.join( [ wave_1, wave_2, wave_3, wave_4 ] )
+wave_4 = 'PCC:200'
+wave_5 = 'ER:200'
+recipe = '+'.join( [ wave_1, wave_2, wave_3, wave_4, wave_5 ] )
 
 # load data set
 signal = Namespace( **sio.loadmat( 'data.mat' ) ).signal
@@ -121,9 +122,9 @@ for generation in list( range( numGenerations ) ):
         sys.stdout.flush() 
 
     if rank==winning_rank:
-        winning_img = img.copy()
-        new_sup = sup.copy()
-        winning_pcc = pcc.copy()
+        winning_img = img.copy().astype( np.complex64 )
+        new_sup = sup.copy().astype( np.float32 )
+        winning_pcc = pcc.copy().astype( np.float32 )
     else:
         winning_img = np.empty( img.shape, dtype=np.complex64 )
         new_sup = np.empty( sup.shape, dtype=np.float32 )
