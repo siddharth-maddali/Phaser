@@ -1,0 +1,68 @@
+import copy
+import sys
+from score import score
+import align_images as ai
+from shrinkwrap import Shrinkwrap as sw
+sys.path.append('Phaser-partialcoherence')
+import numpy as np
+import Phaser as ph
+def run_GA(signal,recipe,support=None,num_gen=3,num_ind=3,fitness='chi',pcc=False,cull_gen=101):
+    new_sups =[support for i in range(num_ind)]
+    new_imgs = [support for i in range(num_ind)]
+    for g in range(num_gen):
+        print('GENERATION %s'%g)
+        imgs,sups,chis = [],[],[]
+
+        for i in range(num_ind):
+            print(i)
+            rs = True if g==0 else False
+            recon = ph.Phaser( modulus=np.sqrt( signal ),
+                              support = new_sups[i],
+                              random_start=rs,
+                              img_guess = new_imgs[i],
+                              pcc=pcc,
+                              gpu=True ).gpusolver
+            recon.runRecipe( recipe, show_progress=False )
+            recon.Retrieve()
+            chi = recon._error[-1]
+            img = recon.finalImage
+            sup = recon.finalSupport
+
+            phase = np.angle(img)*sup
+            amp = np.absolute(img)
+
+
+            grn = copy.copy(phase[np.where(sup!=0)])
+            if np.count_nonzero(grn[grn>3.1]) > 40 and g<2:
+                grn[grn<0] += 2*np.pi
+            grn -= np.mean(grn)
+            phase[np.where(sup!=0)] = grn           
+
+            imgs.append(amp*np.exp(phase*1j))
+            sups.append(sup)
+            chis.append(chi)
+        w_dict = {
+             'chi':chis,
+             'sharp':[np.absolute(img) for img in imgs],
+             'max_volume':sups,
+             'norm_sharp':[np.absolute(img) for img in imgs]}
+        scores,ws,winner = score(w_dict[fitness],weight=fitness)
+        
+        imgs = [ai.check_get_conj_reflect(imgs[winner],img) for img in imgs]
+        
+        new_imgs = [np.sqrt(imgs[winner]*img) for img in imgs]
+        new_sups = [sw(np.absolute(img),1.0,0.1) for img in new_imgs]
+        
+        plt.imshow(np.absolute(imgs[winner])[:,:,imgs[winner].shape[2]//2])
+        plt.show()
+        plt.imshow(np.absolute(new_sups[winner])[:,:,imgs[winner].shape[2]//2])
+        plt.show()
+        if g ==cull_gen-1:
+            new_amps = [new_imgs[n] for n in range(num_individuals) if scores[n]>num_ind//2]
+            new_sups = [new_sups[n] for n in range(num_individuals) if scores[n]>num_ind//2]
+            num_ind = num_ind//2
+    return imgs[winner],sups[winner]
+
+img,sup = run_GA(signal,recipe,num_ind=6,pcc=True)
+plt.imshow(np.absolute(img)[:,:,img.shape[2]//2])
+plt.show()

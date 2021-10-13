@@ -13,9 +13,9 @@
 import tensorflow as tf
 import numpy as np
 import functools as ftools
-
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 import PostProcessing as post
-from scipy.spatial.transform import Rotation
 
 try:
     from pyfftw.interfaces.numpy_fft import fftshift
@@ -48,32 +48,20 @@ class Mixin:
 
         return
 
-    def resetImage( self, cImg, fSup, reset_error=True ):
-        self._cImage = tf.Variable( fftshift( cImg ), dtype=tf.complex64 )
-        self._support = tf.Variable( fftshift( fSup ), dtype=tf.complex64 )
-        if reset_error:
-            self._error = []
-        return
-
-    def resetParameterList( self, arr ):
-        self._pccSolver._resetParameterList( arr )
-        return
-
-        return
-    
-    def Modulus( self ):
-        return np.absolute( tf.signal.fftshift( tf.signal.fft3d( self._cImage ) ).numpy() )
-
     def _UpdateError( self ):
+
         self._error.append( 
             tf.reduce_sum(
                 ( self._cImage_fft_mod - tf.abs( self._modulus ) )**2
             ).numpy()
         )
+
+
         return
 
     def _UpdateMod( self ):
         self._cImage_fft_mod.assign( tf.abs( tf.signal.fft3d( self._cImage ) ) )
+
         return
 
     def UpdateSupport( self, support ):
@@ -124,29 +112,11 @@ class Mixin:
         return
 
     def Retrieve( self ):
+        
+
         self.finalImage, self.finalSupport = post.centerObject( 
             self._cImage.numpy(), np.absolute( self._support.numpy() )
         )
-        if hasattr( self, '_pccSolver' ):
-            self.pccParameters = self._pccSolver.trainable_variables[0].numpy()
+        self._cImage = tf.Variable(self.finalImage,dtype=tf.complex64)
+        self._support = tf.Variable(self.finalSupport,dtype=tf.complex64)
         return
-
-    def getCovarianceMatrix( self ):
-        try:
-            ln = self.pccParameters.size
-        except NameError: # pccParameters does not exist yet
-            self.pccParameters = self._pccSolver.trainable_variables[0].numpy()
-        
-        evalues = np.diag( self.pccParameters[:3] )**2
-        ang = self.pccParameters[3] # rotation angle in radians
-        th, ph = tuple( self.pccParameters[4:] )
-        ax = np.array( 
-            [ 
-                np.sin( th ) * np.cos( ph ), 
-                np.sin( th ) * np.sin( ph ), 
-                np.cos( th )
-            ]
-        )
-        evectors = Rotation.from_rotvec( ang*ax ).as_matrix()
-        C = evectors @ evalues @ evectors.T
-        return C

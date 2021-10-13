@@ -33,7 +33,7 @@ warnings.filterwarnings( 'ignore', category=FutureWarning )
     # this doesn't seem to work
 
 if rank==0:
-    print( '\nParallelizing on %d workers. '%size )
+    print( 'Parallelizing on %d workers. '%size )
     sys.stdout.flush()
 
 # number of generations to breed forward
@@ -123,7 +123,7 @@ for generation in list( range( numGenerations ) ):
     comm.Bcast( new_sup, root=winning_rank )
     new_sup = ( new_sup + sup > 0.5 ).astype( float ) # the union of two supports
     
-    worker.resetImage( new_img, new_sup )
+    worker.ImageRestart( new_img, new_sup )
 
 if rank==winning_rank:
     print( 'Final solution: worker %d. '%rank )

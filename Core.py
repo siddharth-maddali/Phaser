@@ -36,9 +36,8 @@ class Mixin:
         return
 
 # Writer function to manually reset image
-    def resetImage( self, cImg, fSup, reset_error=True ):
-        self._cImage = fftshift( cImg )
-        self._support = fftshift( fSup )
+    def ImageRestart( self, cImg, reset_error=True ):
+        self._cImage = cImg
         if reset_error:
             self._error = []
         return
@@ -131,17 +130,14 @@ class Mixin:
         return
 
 # Generates a package for the GPU module to read and generate tensors.
-    def generateGPUPackage( self, pcc=False, pcc_params=None ):
-        if pcc_params==None:
-            pcc_params =  np.array( [ 1., 1., 1., 0., 0., 0. ] )
+    def generateGPUPackage( self, pcc=False ):
         mydict = { 
             'array_shape':self._support.shape,
             'modulus':self._modulus, 
             'support':self._support, 
             'beta':self._beta, 
             'cImage':self._cImage,
-            'pcc':pcc, 
-            'pcc_params':pcc_params
+            'pcc':pcc
         }
         return mydict
 
@@ -154,7 +150,7 @@ class Mixin:
         self._support = np.zeros( self._arraySize )
         self._support[ np.where( labeled==support_label ) ] = 1.
         self._support = fftshift( self._support )
-#        self.BinaryErosion( 1 )
+        self.BinaryErosion( 1 )
         return
 
 
