@@ -29,6 +29,7 @@ class Mixin: # inherited by Phaser module
     def _ModProjectPC( self ):
         self._cImage_f = tf.signal.fft3d( self._cImage )
         self._patt = tf.signal.fft3d( tf.cast( tf.abs( self._cImage_f )**2, dtype=tf.complex64 ) )
+        #self._patt.assign( self._patt * tf.reduce_sum( self._modulus ) / tf.reduce_sum( self._patt )  )
         self._pcoh_est = tf.sqrt( tf.cast( tf.abs( tf.signal.ifft3d( self._patt * self._kernel_f ) ), dtype=tf.complex64 ) )
         self._cImage.assign( 
             tf.signal.ifft3d( 
@@ -50,10 +51,10 @@ class PCSolver( tf.Module ):
     def __init__( self, measured_intensity, gpack ):
         self._shape = gpack[ 'array_shape' ]        
         self._modulus_measured = tf.constant( np.sqrt( measured_intensity ), dtype=tf.float32 )
-        pts = self._setupDomain( gpack=gpack )
+        pts, parm_list = self._setupDomain( gpack=gpack )
         self._setupConstants( pts )
         self._setCoherentEstimate( np.absolute( fftn( gpack[ 'cImage' ] ) )**2 )
-        self._setupVariables()
+        self._setupVariables( parm_list )
         self._setupAuxiliary()
         self._updateBlurKernel()
         self._setupOptimizer( learning_rate=0.01, momentum=0.99 )
@@ -74,18 +75,12 @@ class PCSolver( tf.Module ):
     def _setupDomain( self, gpack ):
         x, y, z = tuple( fftshift( this ) for this in np.meshgrid( *[ np.arange( -n//2., n//2. ) for n in gpack[ 'support' ].shape ] ) )
         pts = np.concatenate( tuple( this.reshape( 1, -1 ) for this in [ x, y, z ] ), axis=0 )
-        if isinstance( gpack[ 'pcc_params' ], type( None ) ):
-            self.parm_list = 0.5, 0.5, 0.5, 0., 0., 0.
+        if 'initial_guess' not in gpack.keys():
+            #l1p, l2p, l3p, psip, thetap, phip = 2., 2., 2., 0., 0., 0.
+            parm_list = 0.5, 0.5, 0.5, 0., 0., 0.
         else:
-            self.parm_list = tuple( gpack[ 'pcc_params' ] )
-        return pts
-
-    def _resetParameterList( self, arr ):
-        self.parm_list = tuple( arr )
-        self._setupVariables()
-        self._setupAuxiliary()
-        self._updateBlurKernel()
-        return
+            parm_list = tuple( vardict[ 'initial_guess' ] )
+        return pts, parm_list
 
     def _setupConstants( self, pts ):
         self._q = tf.constant( pts, dtype=tf.float32 )
@@ -113,8 +108,11 @@ class PCSolver( tf.Module ):
         return
 
 
-    def _setupVariables( self ):
-        self._vars = tf.Variable( np.array( self.parm_list ), dtype=tf.float32 )
+    def _setupVariables( self, parm_list ):
+        #self._l1, self._l2, self._l3, self._psi, self._theta, self._phi = tuple( 
+        #    tf.Variable( this, dtype=tf.float32 ) for this in parm_list
+        #)
+        self._vars = tf.Variable( np.array( parm_list ), dtype=tf.float32 )
         return
 
     #@tf.function       # don't do this, it messes with eager execution
@@ -143,6 +141,8 @@ class PCSolver( tf.Module ):
             allIterations = tqdm( list( range( iterations ) ), desc='PCC' )
         else:
             allIterations = list( range( iterations ) )
+        
+
 
         for n in allIterations: 
             with tf.GradientTape( persistent=True ) as tape:
@@ -151,6 +151,8 @@ class PCSolver( tf.Module ):
                 objfun = self.Objective()
 
             gradient = tape.gradient( objfun, self.trainable_variables )
+            #print( objfun )
+            #print( gradient )
             self._optimizer.apply_gradients( zip( gradient, self.trainable_variables ) )
             
         return
