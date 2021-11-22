@@ -36,6 +36,7 @@ class ScatteringGeometry:
         gamma=45.,                          # degrees
         delta=25.,                          # degrees
         dtheta=0.01,                        # degrees (this becomes the step in phi if delta = 0).
+        optimal_orthogonality=False,        # leave False unless you're knowing what you're doing!
         recipSpaceSteps=[ 256, 256, 70 ]    # data array size
 
     ):

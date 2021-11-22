@@ -55,6 +55,11 @@ class Mixin:
             self._error = []
         return
 
+    def resetSolver( self, fData, cImg, fSup ):
+        self._modulus = tf.constant( fftshift( fData ), dtype=tf.complex64 )
+        self.resetImage( cImg, fSup )
+        return
+
     def resetParameterList( self, arr ):
         self._pccSolver._resetParameterList( arr )
         return

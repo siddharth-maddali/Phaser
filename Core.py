@@ -43,6 +43,11 @@ class Mixin:
             self._error = []
         return
 
+    def resetSolver( self, fData, cImg, fSup ):
+        self._modulus = fftshift( fData )
+        self.resetImage( cImg, fSup ) # resets error
+        return
+
 # Reader function for the final computed modulus
     def Modulus( self ):
         return np.absolute( fftshift( fftn( self._cImage ) ) )
