@@ -1,32 +1,22 @@
 import numpy as np
+from scipy.spatial.transform import Rotation
+
 
 
 def Gamma( gam ):
-    return np.array( 
-        [
-            [ 1., 0., 0. ], 
-            [ 0.,  np.cos( gam ), np.sin( gam ) ], 
-            [ 0., -np.sin( gam ), np.cos( gam ) ]
-        ]
-    )
+    return Rotation.from_rotvec( 
+        gam * np.array( [ -1., 0., 0. ] ) 
+    ).as_matrix()
 
 def Delta( delt ):
-    return np.array( 
-        [ 
-            [  np.cos( delt ), 0., np.sin( delt ) ], 
-            [ 0., 1., 0. ], 
-            [ -np.sin( delt ), 0., np.cos( delt )]
-        ]
-    )
+    return Rotation.from_rotvec( 
+        delt * np.array( [ 0., 1., 0. ] )
+    ).as_matrix()
 
 def Chi( chi ):
-    return np.array( 
-        [
-            [  np.cos( chi ), -np.sin( chi ), 0. ], 
-            [  np.sin( chi ),  np.cos( chi ), 0. ],
-            [ 0., 0., 1. ] 
-        ]
-    )
+    return Rotation.from_rotvec( 
+        chi * np.array( [  0., 0., 1. ] )
+    ).as_matrix()
 
 def orthogonality( M ):
     """
