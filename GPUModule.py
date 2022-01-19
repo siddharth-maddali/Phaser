@@ -48,9 +48,10 @@ class Solver(
                 )
             )
             self._pccSolver = PCSolver( np.absolute( self._modulus )**2, gpack )
-            self._kernel_f = self._pccSolver.getBlurKernel()
+            self._kernel_f = self._pccSolver.getBlurKernel() 
             self._ModProject = self._ModProjectPC
             self._algodict[ 'PCC' ] = self.PCC
+#             print(self._vars.numpy())
         return
 
 

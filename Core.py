@@ -137,7 +137,8 @@ class Mixin:
             'support':self._support, 
             'beta':self._beta, 
             'cImage':self._cImage,
-            'pcc':pcc
+            'pcc':pcc,
+            
         }
         return mydict
 

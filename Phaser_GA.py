@@ -9,7 +9,7 @@ sys.path.append('Phaser-partialcoherence')
 import numpy as np
 import Phaser as ph
 import matplotlib.pyplot as plt
-def run_GA(signal,recipes,support=None,num_gen=3,num_ind=3,cull_gen=None,fitness='chi',pcc=False,plot=False):
+def run_GA(signal,recipes,num_gen,num_ind,cull,support=None,fitness='chi',pcc=False,plot=False):
     
     """Runs a genetic algorithm by calling Phaser several times in serial. 
     
@@ -95,7 +95,7 @@ def run_GA(signal,recipes,support=None,num_gen=3,num_ind=3,cull_gen=None,fitness
             B=ax[1].imshow(np.absolute(fftshift(fftn(fftshift(imgs[winner])))**2)[:,:,imgs[winner].shape[2]//2],norm=LogNorm())
             ax[1].set_title('Forward-Modeled Signal')
             fig.colorbar(B,ax=ax[1])
-            C=ax[2].imshow(np.absolute(imgs[winner])[:,:,imgs[winner].shape[2]//2])
+            C=ax[2].imshow(np.absolute(imgs[winner])[:,imgs[winner].shape[1]//2,:])
             ax[2].set_title('Reconstructed Amplitude')
             fig.colorbar(C,ax=ax[2])
             plt.show()
@@ -103,12 +103,13 @@ def run_GA(signal,recipes,support=None,num_gen=3,num_ind=3,cull_gen=None,fitness
             
         track_err.append(errors[winner])
         track_gen_err.append(chis[winner])
-        if cull_gen is not None and g ==cull_gen:
-            new_amps = [new_imgs[n] for n in range(num_ind) if scores[n]>num_ind//2]
-            new_sups = [new_sups[n] for n in range(num_ind) if scores[n]>num_ind//2]
-            num_ind = num_ind//2
+        if cull[g] != 1:
+            new_amps = [new_imgs[n] for n in range(num_ind) if scores[n]>num_ind//cull[g]]
+            new_sups = [new_sups[n] for n in range(num_ind) if scores[n]>num_ind//cull[g]]
+            num_ind = num_ind//cull[g]
             
         final_img = imgs[winner]
+        print('individual %s wins'%winner)
         final_sup = sw(np.absolute(final_img),1.0,0.1)
     return final_img,final_sup,track_gen_err,np.hstack(track_err)#,blur_kernels[winner]
 

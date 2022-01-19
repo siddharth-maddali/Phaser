@@ -5,10 +5,10 @@ import time
 import align_images as ai
 from shrinkwrap2 import Shrinkwrap
 from miscellaneous import plot_u
-
+import gc
 
 import matplotlib.pyplot as plt
-def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,criterion='chi',verbose=False,pcc=False,gpu=True,bad_pix=200):  
+def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,criterion='chi',verbose=False,pcc=False,gpu=True,unwrap_gens=None):  
     
     """
         Function which runs the coupled 
@@ -35,22 +35,27 @@ def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,criterion='chi',verbose=Fa
     
     
     
-    
+    if unwrap_gens == None:
+        unwrap_gens = np.zeros(num_gen,dtype=np.bool)
+        
     
     initial =[[sup,sup,np.zeros((3,sup.shape[0],sup.shape[1],sup.shape[2])),True] for i in range(num_ind)]
     best_chi,best_L = [],[]
     tm_est = 0
     for g in range(num_gen):
+        unwrap = unwrap_gens[g]
+        gc.collect()
         recipes = Recipes[g]
         if verbose:
             print('##########################################################################################')
             print('Generation: %s'%g)
         us,amps,sups,chis,Ls = [],[],[],[],[] #lists which will contain the values for each individual
         for n in range(num_ind):
+            gc.collect()
             print('Individual: %s'%n)
             start = time.time()
             amp,sup,u,rs = initial[n]
-            obj = cpr(data,qs,sup,a,amp=amp,u=u,random_start=rs,bad_pix = bad_pix,pcc=pcc,gpu=gpu) #create multi-phaser object
+            obj = cpr(data,qs,sup,a,amp=amp,u=u,random_start=rs,pcc=pcc,gpu=gpu,unwrap=unwrap) #create multi-phaser object
             obj.run_recipes(recipes)
             chi,L = obj.extract_error()
             vals = obj.extract_vals()
@@ -134,15 +139,17 @@ def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,criterion='chi',verbose=Fa
         initial = [[new_amps[n],new_sups[n],new_us[n],False] for n in range(num_ind)]
         
         if verbose:
-            fig,axs = plt.subplots(nrows=1,ncols=3,figsize= (15,5))
-            c = np.array(us[winner].shape)[1]//2
-            labels = ['$u_x$','$u_y$','$u_z$']
-            for i,ax in enumerate(axs):
-                s = us[winner][i,c-5:c+5,c-5:c+5,c-5:c+5]
-                minn,maxx = s.mean()-3*np.std(s),s.mean()+3*np.std(s)
-                A = ax.imshow(us[winner][i,:,:,c],vmin=minn,vmax=maxx)
-                ax.set_title(labels[i])
-                fig.colorbar(A,ax=ax)
+            plot_u(us[winner],axis=2)
+#             fig,axs = plt.subplots(nrows=1,ncols=3,figsize= (15,5))
+#             c = np.array(us[winner].shape)[1]//2
+#             labels = ['$u_x$','$u_y$','$u_z$']
+#             for i,ax in enumerate(axs):
+#                 s = us[winner][i,c-5:c+5,c-5:c+5,c-5:c+5]
+#                 minn,maxx = s.mean()-3*np.std(s),s.mean()+3*np.std(s)
+#                 A = ax.imshow(us[winner][i,:,:,c],vmin=minn,vmax=maxx)
+#                 ax.set_title(labels[i])
+#                 fig.colorbar(A,ax=ax)
 
-            plt.show()
-    return {"amp":amps[winner],"sup":Shrinkwrap(amps[winner],1.0,0.4),"u":us[winner],"error":best_chi,"L":best_L}
+#             plt.show()
+
+    return {"amp":amps[winner],"sup":Shrinkwrap(amps[winner],1.0,0.2),"u":us[winner],"error":best_chi,"L":best_L}

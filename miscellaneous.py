@@ -3,6 +3,37 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from copy import copy
 
+
+def fig_plot_u(u,minmax = None,axis=2):
+    fig,axs = plt.subplots(nrows=1,ncols=3,figsize= (15,4))
+    c = np.array(u.shape)//2
+    labels = ['$u_x$','$u_y$','$u_z$']
+    for i,ax in enumerate(axs):
+        s = u[i,c[1]-5:c[1]+5,c[2]-5:c[2]+5,c[3]-5:c[3]+5]   
+        if minmax == None:
+            if axis == 0:
+                
+                A = ax.imshow(u[i,c[1],:,:])
+            if axis == 1:
+                A = ax.imshow(u[i,:,c[2],:])
+            if axis == 2:
+                A = ax.imshow(u[i,:,:,c[3]])
+        else:
+            if axis == 0:
+                A = ax.imshow(u[i,c[1],:,:],vmin=minmax[0],vmax=minmax[1])
+            if axis == 1:
+                A = ax.imshow(u[i,:,c[2],:],vmin=minmax[0],vmax=minmax[1])
+            if axis == 2:
+                A = ax.imshow(u[i,:,:,c[3]],vmin=minmax[0],vmax=minmax[1])
+            
+        ax.set_title(labels[i])
+        ax.xaxis.set_visible(False)
+        ax.yaxis.set_visible(False)
+        cbar = fig.colorbar(A,ax=ax,shrink=0.9)
+
+        cbar.set_label('nm', rotation=270)
+    
+    return fig
 def rescale_noise(pks,max_val):
     peaks = []
     for m in range(len(pks)):
@@ -64,7 +95,7 @@ def plot_strain(strain,min_max=False):
     plt.show()
     return
 def plot_u(u,minmax = None,axis=2):
-    fig,axs = plt.subplots(nrows=1,ncols=3,figsize= (15,5))
+    fig,axs = plt.subplots(nrows=1,ncols=3,figsize= (15,4))
     c = np.array(u.shape)//2
     labels = ['$u_x$','$u_y$','$u_z$']
     for i,ax in enumerate(axs):

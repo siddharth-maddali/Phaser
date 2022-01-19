@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+'# -*- coding: utf-8 -*-'
 """
 Created on Tue Aug 20 10:47:01 2019
 
@@ -44,7 +44,7 @@ class f_model:
         return 
        
     
-    def forward(self,pln,plot=True):
+    def forward(self,pln,plot=True,center=False):
         
         p = pln[0]*self.u_x+pln[1]*self.u_y+pln[2]*self.u_z
         phase = self.grain*np.exp(2j*p*np.pi/self.a)
@@ -54,10 +54,11 @@ class f_model:
         det_pat = np.absolute(new_array)**2
 
         output = det_pat
-#         max_where = np.array(np.where(output==output.max()))
-#         max_where = [m[0] for m in max_where]
-# #         print(max_where)
-#         output = translate(output,max_where,[self.dim[0]//2,self.dim[1]//2,self.dim[2]//2])
+        if center:
+            max_where = np.array(np.where(output==output.max()))
+            max_where = [m[0] for m in max_where]
+    #         print(max_where)
+            output = translate(output,max_where,[self.dim[0]//2,self.dim[1]//2,self.dim[2]//2])
         
         
 

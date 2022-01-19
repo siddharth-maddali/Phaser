@@ -38,10 +38,10 @@ def check_get_conj_reflect_us(ar1, ar2,verbose=False):
     if np.amax(cc1) > np.amax(cc2):
         if verbose:
             print('flip')
-        return np.array([center(conj_reflect(arr2[i]).numpy()) for i in range(3)])
+        return np.array([conj_reflect(arr2[i]).numpy() for i in range(3)])
          
     else:
-        return np.array([center(ar2[i]) for i in range(3)])
+        return ar2#np.array([center(ar2[i]) for i in range(3)])
     
 def check_get_conj_reflect_us_opp(ar1, ar2,verbose=False):
     
@@ -58,10 +58,10 @@ def check_get_conj_reflect_us_opp(ar1, ar2,verbose=False):
     if np.amax(cc1) < np.amax(cc2):
         if verbose:
             print('flip')
-        return np.array([center(conj_reflect(arr2[i]).numpy()) for i in range(3)])
+        return np.array([conj_reflect(arr2[i]).numpy() for i in range(3)])
          
     else:
-        return np.array([center(ar2[i]) for i in range(3)])
+        return ar2#np.array([center(ar2[i]) for i in range(3)])
 
     
     
@@ -79,7 +79,7 @@ def check_get_conj_reflect(arr1, arr2,verbose=False):
     if np.amax(cc1) > np.amax(cc2):
         if verbose:
             print('flip')
-        return center(conj_arr2.numpy())
+        return conj_arr2.numpy()
          
     else:
-        return center(arr2.numpy())
+        return arr2.numpy()

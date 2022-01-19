@@ -38,6 +38,7 @@
 import numpy as np
 import GPUModule as accelerator
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 try:
     from pyfftw.interfaces.numpy_fft import fftshift, fftn, ifftn
 except: 
@@ -66,13 +67,14 @@ class Phaser(
             gpu=False,
             pcc=False,
             random_start=True,
-            img_guess = None
-            ):
+            img_guess = None,
+            parms=None):
 
         self.BEStruct           = np.ones( ( 3, 3, 3 ) ) # default structuring element for 3D binary erosion
         self.BinaryErosion      = self.__CPUErosion__
         
         self._modulus           = fftshift( modulus )
+
         self._arraySize         = tuple( this*shp for this, shp in zip( [ binning, binning, 1 ], self._modulus.shape ) )
         if support is None:
             self._initializeSupport()

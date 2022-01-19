@@ -29,7 +29,7 @@ def calc_strain(u,sup,del_x,plot=True,plot_range=[-0.003,0.003]):
     exz = 0.5*(ux_z + uz_x)*border
     eyz = 0.5*(uy_z + uz_y)*border
     
-    strain = np.array([[exx,exy,exz],[np.zeros(eyy.shape),eyy,eyz],[np.zeros(eyy.shape),np.zeros(eyy.shape),ezz]])/del_x
+    strain = np.array([[exx,exy,exz],[exy,eyy,eyz],[exz,eyz,ezz]])/del_x
     if plot:
         fig,ax = plt.subplots(nrows=2,ncols=3,figsize=(18,10))
         ind = [(0,0),(1,1),(2,2),(0,1),(0,2),(1,2)]

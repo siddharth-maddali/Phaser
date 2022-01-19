@@ -39,11 +39,14 @@ class Mixin: # inherited by Phaser module
         return
 
     def PCC( self, n_iterations, show_progress=False ):
+        
+#         print(self._pccSolver.trainable_variables[0].numpy())
         self._pccSolver._setCoherentEstimate( ( tf.abs( tf.signal.fft3d( self._cImage ) )**2 ).numpy() )
         self._pccSolver.Deblur( iterations=n_iterations, show_progress=show_progress )
         self._pccSolver._setupAuxiliary()
         self._pccSolver._updateBlurKernel()
         self._kernel_f = self._pccSolver.getBlurKernel()
+        
         return
 
 class PCSolver( tf.Module ): 

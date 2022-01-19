@@ -1,0 +1,66 @@
+coupled phaser commit
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# Committer: Matthew Wilkin <mjwilkin@JICARITA.materials.cmu.edu>
+#
+# On branch coupled_phaser
+# Changes to be committed:
+#	new file:   1db4_star_trek_phaser_remote_replica.jpg
+#	deleted:    Changelog.txt
+#	modified:   Core.py
+#	modified:   GPUModule.py
+#	modified:   GPUModule_Core.py
+#	modified:   GaussPCC.py
+#	new file:   Geometry_Correction.py
+#	new file:   Ground_Truth.png
+#	modified:   Guided.py
+#	deleted:    Guided_GPU.py
+#	deleted:    Guided_PCC.py
+#	modified:   Phaser.py
+#	new file:   Phaser_GA.py
+#	deleted:    PlotLikeMatlab.py
+#	modified:   PostProcessing.py
+#	deleted:    README.ipynb
+#	modified:   README.md
+#	new file:   Rotate_Peaks.py
+#	new file:   Tutorial.ipynb
+#	deleted:    _config.yml
+#	new file:   align_images.py
+#	new file:   align_images_MJW.py
+#	deleted:    basic_tutorial.ipynb
+#	new file:   calc_strain.py
+#	new file:   center_u.py
+#	new file:   coupled_phaser.py
+#	new file:   coupled_phaser_GA.py
+#	modified:   data.mat
+#	new file:   forward_model.py
+#	new file:   gpcf.py
+#	deleted:    images/isol.pdf
+#	deleted:    images/isol.png
+#	deleted:    images/reconErr.jpg
+#	deleted:    images/reconError.jpg
+#	deleted:    images/scattererAmp.jpg
+#	deleted:    images/scattererAmp_gpu.jpg
+#	deleted:    images/scattererPh.jpg
+#	deleted:    images/scattererPhs.jpg
+#	deleted:    images/scattererPhs_gpu.jpg
+#	deleted:    images/scattererSup.jpg
+#	deleted:    images/scattererSup_gpu.jpg
+#	deleted:    isosurfacePlotMatlab/plotParticle.m
+#	deleted:    isosurfacePlotMatlab/tetLighting.m
+#	deleted:    logo.jpg
+#	deleted:    logo.png
+#	new file:   miscellaneous.py
+#	new file:   parent_sup2.npy
+#	new file:   parent_u.npy
+#	deleted:    partial_coherence.ipynb
+#	new file:   recon_cleanup.py
+#	modified:   requirements.txt
+#	new file:   score-Copy1.py
+#	new file:   score.py
+#	new file:   shrinkwrap.py
+#	new file:   shrinkwrap2.py
+#	new file:   testscript.py
+#	new file:   untitled.txt
+#

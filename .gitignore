@@ -5,9 +5,8 @@ phasingResult-2.mat
 *.html
 .ipynb_checkpoints/*
 .*.*.swp
+*.ipynb
 deprecated/*
 test_scripts/
 stracthpad*
 Changelog.txt
-singleScrewDislocation.mat
-guidedResult*.mat
