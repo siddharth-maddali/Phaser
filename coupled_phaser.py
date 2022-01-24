@@ -25,6 +25,7 @@ class cpr:
         free_vox_mask -- numpy mask to determine which voxels are used for optimization (numpy array,dtype=boolean, dimensions = (nxnxn))
         gpu -- option to use gpu or not (dtype=boolean)
         unwrap -- option to unwrap phases (dtype=boolean)
+        params -- partial coherence gaussian parameters, one for each constituent (numpy array,dytpe=float, dimensions = (num_datasetsx6))
         
     functions:
         run_recipes -- runs multi_phaser recipes (see tutorial.ipynb for details) --> example: [['ER:20',[1.0,0.1]],['HIO:20',[0]]] 
