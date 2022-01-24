@@ -20,9 +20,11 @@ class cpr:
         u -- guess for displacement (numpy array, dtype=float,dimensions=(3xnxnxn)). Must be specified if random_start = False.
         a -- lattice parameter (dtype=float units: nm)
         random_start -- option to start with random phase on all constituents. If true, u is ignored (boolean)
-        bad_pix -- hacky fix to phase wraps. If a certain number of pixels are close to pi or -pi, we add 2*pi to those pixels (dtype int)
+        center -- option to phases of each constituent about zero (dtype=boolean)
         pcc -- option to turn on partial coherence correction (dtype=boolean)
+        free_vox_mask -- numpy mask to determine which voxels are used for optimization (numpy array,dtype=boolean, dimensions = (nxnxn))
         gpu -- option to use gpu or not (dtype=boolean)
+        unwrap -- option to unwrap phases (dtype=boolean)
         
     functions:
         run_recipes -- runs multi_phaser recipes (see tutorial.ipynb for details) --> example: [['ER:20',[1.0,0.1]],['HIO:20',[0]]] 
@@ -31,7 +33,8 @@ class cpr:
         extract_error -- returns two error lists over all iterations, one for chi^2 and one for least squares loss
     
     """
-    def __init__(self,data,qs,sup,a,amp=False,u=False,random_start=True,pcc=False,gpu=True,params=None,unwrap=False,center=False):
+    def __init__(self,data,qs,sup,a,amp=False,u=False,random_start=True,pcc=False,gpu=True,params=None,unwrap=False,
+                 center=False,free_vox_mask=None):
         if random_start:
             u = np.repeat(sup[np.newaxis,:,:,:],3,axis=0)
             amp = sup
@@ -118,9 +121,9 @@ class cpr:
 
     def phase_to_u(self,sw):
         self.energies = tf.stack([tf.norm(tf.abs(r._cImage)) for r in self.recons])
-        self.amp = tf.math.reduce_mean( tf.stack([tf.abs(r._cImage) for r in self.recons]),axis=0)
+#         self.amp = tf.math.reduce_mean( tf.stack([tf.abs(r._cImage) for r in self.recons]),axis=0)
 #         print([tf.reduce_sum(tf.abs(r._cImage)).numpy() for r in self.recons])
-#         self.amp = tf.math.reduce_mean( tf.stack([tf.abs(r._cImage)/tf.reduce_sum(tf.abs(r._cImage)) for r in self.recons]),axis=0)
+        self.amp = tf.math.reduce_mean( tf.stack([tf.abs(r._cImage)/tf.reduce_sum(tf.abs(r._cImage)) for r in self.recons]),axis=0)
 #         phs = tf.stack([tf.math.angle(r._cImage) for r in self.recons])
         phs = [tf.math.angle(r._cImage) for r in self.recons]
 
@@ -220,24 +223,10 @@ class cpr:
                 if i%10 ==0:
                     r.Retrieve()
                     r._cImage = ai.check_get_conj_reflect(self.recons[0]._cImage,r._cImage,verbose=True)
-#                     self.center_phase()
-#             if i == len(recipes)-1:
-#                 print('after')
-#                 print(self.recons[0]._pccSolver.getBlurKernel().numpy().sum())
+                    
             if self.center:   
                 if i%5 == 0:
-    # #                 print('before')
-    #                 fig,axs = plt.subplots(ncols=len(self.recons),figsize=(16,5))
-    #                 for r,ax in zip(self.recons,axs.ravel()):
-    #                     ax.imshow(np.angle(r._cImage.numpy())[:,:,self.dim[2]//2],vmin=-np.pi,vmax=np.pi)
-    #                 plt.show()
-                    self.center_phase()
-#                 print('after')
-#             if i==len(recipes)-1:
-#                 fig,axs = plt.subplots(ncols=4,figsize=(16,5))
-#                 for r,ax in zip(self.recons,axs.ravel()):
-#                     ax.imshow(np.angle(r._cImage.numpy())[:,:,self.dim[2]//2],vmin=-np.pi,vmax=np.pi)
-#                 plt.show()                
+                    self.center_phase()              
             
             self.phase_to_u(recipe[1])
             self.UpdateSupport()

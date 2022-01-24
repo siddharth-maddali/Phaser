@@ -51,12 +51,13 @@ class Solver(
             self._kernel_f = self._pccSolver.getBlurKernel() 
             self._ModProject = self._ModProjectPC
             self._algodict[ 'PCC' ] = self.PCC
-#             print(self._vars.numpy())
+
         return
 
 
     def manageGPUMemory( self ):
         physical_devices = tf.config.experimental.list_physical_devices( 'GPU' )
+        print(physical_devices)
         assert len(physical_devices) > 0, 'GPU(s) not found. '
         self.__config__ = tf.config.experimental.set_memory_growth(
             physical_devices[0], 

@@ -68,7 +68,8 @@ class Phaser(
             pcc=False,
             random_start=True,
             img_guess = None,
-            parms=None):
+            parms=None,
+            free_vox_mask=None):
 
         self.BEStruct           = np.ones( ( 3, 3, 3 ) ) # default structuring element for 3D binary erosion
         self.BinaryErosion      = self.__CPUErosion__
@@ -84,7 +85,8 @@ class Phaser(
 
         self._support_comp      = 1. - self._support
         self._beta              = beta
-
+        self._free_vox_mask = free_vox_mask
+        self._pcc = pcc
         if random_start:
             self._cImage            = np.exp( 2.j * np.pi * np.random.random_sample( self._arraySize ) ) * self._support
         else:
@@ -100,7 +102,7 @@ class Phaser(
         self.generateAlgoDict()
 
         if gpu==True:
-            gpack = self.generateGPUPackage( pcc=pcc )
+            gpack = self.generateGPUPackage( )
             self.gpusolver = accelerator.Solver( gpack )
 
         #if pcc==True:

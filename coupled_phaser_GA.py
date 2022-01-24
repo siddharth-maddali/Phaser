@@ -24,9 +24,11 @@ def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,criterion='chi',verbose=Fa
         cull -- list of factors by which to cull the population after each generation (list, dtype=int)
         criterion -- criterion by which to rank individuals for breeding (string, 'chi', 'sharp','max_volume','norm_sharp','least_squares')
         verbose -- option to print intermediate results (dtype=boolean)
-        bad_pix -- hacky fix to phase wraps. If a certain number of pixels are close to pi or -pi, we add 2*pi to those pixels (dtype int)
+        center -- option to phases of each constituent about zero (dtype=boolean)
         pcc -- option to turn on partial coherence correction (dtype=boolean)
+        free_vox_mask -- numpy mask to determine which voxels are used for optimization (numpy array,dtype=boolean, dimensions = (nxnxn))
         gpu -- option to use gpu or not (dtype=boolean)
+        unwrap_gens -- boolean list to turn on phase unwrapping generation by generation (list length: num_gen, dtype=boolean)
         
     returns:
         vals -- dictionary containing u,amp,sup, list of chi^2 errors and list of least squares losses after each generation

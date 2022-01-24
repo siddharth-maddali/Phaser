@@ -26,6 +26,17 @@ class Mixin:
 
     def ImportCore( self, varDict ):
         self._modulus = tf.constant( varDict[ 'modulus' ], dtype=tf.complex64 )
+        
+        if varDict[ 'free_vox_mask' ] is None:
+            self.mask = np.ones_like(self._modulus.numpy())
+            self.unmask = self.mask
+            
+        else:
+            self.mask = varDict[ 'free_vox_mask' ]
+            self.unmask = self.mask == 0
+            
+        self.mask = tf.Variable(self.mask,dtype=tf.float32)
+        self.unmask = tf.Variable(self.unmask,dtype='bool')
         self._support = tf.Variable( varDict[ 'support' ], dtype=tf.complex64 )
         self._support_comp = tf.Variable( 1. - varDict[ 'support' ], dtype=tf.complex64 )
         self._beta = tf.constant( varDict[ 'beta' ], dtype=tf.complex64 )
@@ -51,8 +62,8 @@ class Mixin:
     def _UpdateError( self ):
 
         self._error.append( 
-            tf.reduce_sum(
-                ( self._cImage_fft_mod - tf.abs( self._modulus ) )**2
+            tf.reduce_sum(self.mask*
+                ( self._cImage_fft_mod - tf.abs( self._modulus ) )**2/tf.abs(self._modulus)
             ).numpy()
         )
 
@@ -74,11 +85,11 @@ class Mixin:
         return
 
     def _UpdateHIOStep( self ):
-        self._cImage.assign( 
+        self._cImage.assign( tf.where(self.unmask,
             ( self._support * self._cImage ) +\
-            self._support_comp * ( self._cachedImage - self._beta * self._cImage )
-        )
+            self._support_comp * ( self._cachedImage - self._beta * self._cImage ),self._cImage))
         return
+        
 
 # GPU-specific shrinkwrap routine
     def Shrinkwrap( self, sigma, thresh ):
@@ -92,14 +103,14 @@ class Mixin:
         return
 
     def _ModProject( self ):
-        self._cImage.assign( 
+        self._cImage.assign( tf.where(self.unmask,
             tf.signal.ifft3d( self._modulus * tf.exp( 1.j * tf.cast( 
                     tf.math.angle( tf.signal.fft3d( self._cImage ) ), 
                     dtype=tf.complex64 
                 ) 
-            ) )
-        )
+            ) ),self._cImage))
         return
+
 
     def _SupProject( self ):
         self._cImage.assign( self._cImage * self._support )

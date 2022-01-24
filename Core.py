@@ -137,7 +137,8 @@ class Mixin:
             'support':self._support, 
             'beta':self._beta, 
             'cImage':self._cImage,
-            'pcc':pcc,
+            'pcc':self._pcc,
+            'free_vox_mask':self._free_vox_mask
             
         }
         return mydict

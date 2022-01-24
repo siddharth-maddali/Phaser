@@ -19,7 +19,7 @@ class Mixin:
             'ER':self.ER, 
             'HIO':self.HIO, 
             'SF':self.SF, 
-            'SR':self.Shrinkwrap
+            'SR':self.Shrinkwrap,
         }
         return
 
