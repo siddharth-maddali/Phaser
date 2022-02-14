@@ -121,27 +121,45 @@ class cpr:
 
 
     def phase_to_u(self,sw):
-        self.energies = tf.stack([tf.norm(tf.abs(r._cImage)) for r in self.recons])
-#         self.amp = tf.math.reduce_mean( tf.stack([tf.abs(r._cImage) for r in self.recons]),axis=0)
-#         print([tf.reduce_sum(tf.abs(r._cImage)).numpy() for r in self.recons])
-        self.amp = tf.math.reduce_mean( tf.stack([tf.abs(r._cImage)/tf.reduce_sum(tf.abs(r._cImage)) for r in self.recons]),axis=0)
-#         phs = tf.stack([tf.math.angle(r._cImage) for r in self.recons])
-        phs = [tf.math.angle(r._cImage) for r in self.recons]
+        self.energies = tf.stack([tf.reduce_sum(tf.abs(r._cImage)) for r in self.recons])
+        self.amp =  tf.stack([tf.abs(r._cImage)/tf.reduce_sum(tf.abs(r._cImage)) for r in self.recons])
+        
+#         if self.unwrap:
+#         fig,axs = plt.subplots(ncols=len(self.recons),figsize=(15,3))
+#         for ax,ph in zip(axs.ravel(),self.amp):
+#             ax.imshow(ph[15:-15,ph.shape[1]//2,15:-15])
+#         plt.show()    
+
+        self.amp = tf.math.reduce_mean(self.amp,axis=0)
+
+        phs = [tf.math.angle(r._cImage)*tf.cast(r._support,dtype=tf.float32) for r in self.recons]
 
         small_sup = Shrinkwrap(self.amp,1.0,0.2)
-    
+
         if self.unwrap:
+#             fig,axs = plt.subplots(ncols=len(self.recons),figsize=(15,3))
+#             for ax,ph in zip(axs.ravel(),phs):
+#                 ax.imshow(ph[15:-15,ph.shape[1]//2,15:-15],vmin=-np.pi,vmax=np.pi)
+#             plt.show()
+            
+            
             ss = np.array(self.sup.shape)//2
             for i in range(len(self.recons)):
 
                 m = np.array(phs[i].shape)//2-ss
                 p = phs[i][self.dim[0]//2-ss[0]:self.dim[0]//2+ss[0],self.dim[1]//2-ss[1]:self.dim[1]//2+ss[1],self.dim[2]//2-ss[2]:self.dim[2]//2+ss[2]]
-                ph = tf.Variable(unwrap_phase(p.numpy(),seed=0),dtype=tf.float32)*self.sup
+                ph = tf.Variable(unwrap_phase(p.numpy()),dtype=tf.float32)*self.sup
 
                 phs[i] = tf.pad(ph,[[m[0],m[0]],[m[1],m[1]],[m[2],m[2]]],'constant')
                 phs[i] -= tf.reduce_mean(phs[i][ss[0]-10:ss[0]+10,ss[1]-10:ss[1]+10,ss[2]-10:ss[2]+10])
+#             fig,axs = plt.subplots(ncols=len(self.recons),figsize=(15,3))
+#             for ax,ph in zip(axs.ravel(),phs):
+#                 ax.imshow(ph[15:-15,ph.shape[1]//2,15:-15],vmin=-np.pi,vmax=np.pi)
+#             plt.show()
 
         phs = tf.stack(phs)
+        
+        
         phs = tf.transpose(phs,[1,2,3,0])
         shp = phs.shape
         phs = tf.reshape(phs,(shp[0],shp[1],shp[2],shp[3],1))
@@ -205,7 +223,7 @@ class cpr:
 
         energies = tf.cast(self.energies,dtype=tf.complex64)
         amp = tf.pad(self.amp,self.paddings,'constant')
-        amp = tf.cast(amp/tf.norm(amp),dtype=tf.complex64)
+        amp = tf.cast(amp/tf.reduce_sum(amp),dtype=tf.complex64)
 
         phase = tf.cast(phase,dtype=tf.complex64)
 
@@ -223,7 +241,7 @@ class cpr:
 
                 if i%10 ==0:
                     r.Retrieve()
-                    r._cImage = ai.check_get_conj_reflect(self.recons[0]._cImage,r._cImage,verbose=True)
+                    r._cImage = ai.check_get_conj_reflect(self.recons[0]._cImage,r._cImage)
                     
             if self.center:   
                 if i%5 == 0:

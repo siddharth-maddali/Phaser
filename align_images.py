@@ -33,14 +33,18 @@ def check_get_conj_reflect_us(ar1, ar2,verbose=False):
     support2 = tf.constant(shrink_wrap(tf.abs(arr2[0]), 1., .1),dtype=tf.complex64)
     support3 = tf.constant(shrink_wrap(tf.abs(conj_arr2), 1., .1),dtype=tf.complex64)
     cc1 = cross_correlation(support1,support3 )
-    cc2 = cross_correlation(support1, support2)
+    cc2 = cross_correlation(support1,support2 )
 
     if np.amax(cc1) > np.amax(cc2):
         if verbose:
             print('flip')
-        return np.array([conj_reflect(arr2[i]).numpy() for i in range(3)])
+        val = np.array([conj_reflect(arr2[i]).numpy() for i in range(3)])
+        ang = np.angle(val)*support3.numpy()
+        abbs = np.absolute(val)*support3.numpy()
+        return val#abbs*np.exp(1j*ang)
          
     else:
+        
         return ar2#np.array([center(ar2[i]) for i in range(3)])
     
 def check_get_conj_reflect_us_opp(ar1, ar2,verbose=False):
@@ -58,7 +62,10 @@ def check_get_conj_reflect_us_opp(ar1, ar2,verbose=False):
     if np.amax(cc1) < np.amax(cc2):
         if verbose:
             print('flip')
-        return np.array([conj_reflect(arr2[i]).numpy() for i in range(3)])
+        val = np.array([conj_reflect(arr2[i]).numpy() for i in range(3)])
+        ang = np.angle(val)*support3.numpy()
+        abbs = np.absolute(val)*support3.numpy()
+        return abbs*np.exp(1j*ang)
          
     else:
         return ar2#np.array([center(ar2[i]) for i in range(3)])

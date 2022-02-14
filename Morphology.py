@@ -34,7 +34,7 @@ class Mixin:
         return
     
 # GPU method for binary erosion, wraps CPU method in Tensorflow
-    def __GPUErosion__( self, num_erosions=1, kernel_size=[ 1, 3, 3, 2, 1 ] ):
+    def __GPUErosion__( self, num_erosions=1, kernel_size=[ 1, 3, 3, 3, 1 ] ):
 #        self._support = tf.py_function( 
 #            func=self.BinaryErosionCPU, 
 #            inp=[ num_erosions ], 

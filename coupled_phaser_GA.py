@@ -6,12 +6,13 @@ import align_images as ai
 from shrinkwrap2 import Shrinkwrap
 from miscellaneous import plot_u
 import gc
+import tensorflow as tf
 
 import matplotlib.pyplot as plt
-def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,criterion='chi',verbose=False,pcc=False,gpu=True,unwrap_gens=None):  
+def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,criterion='chi',verbose=False,pcc=False,gpu=0,unwrap_gens=None,center=False,free_vox_mask = None,plot_axis=2):  
     
     """
-        Function which runs the coupled 
+        Function which runs the coupled phaser GA
     
     inputs:
         data -- stack of datasets (numpy array, dtype=float,dimensions=(num_datasetsxnxnxn))
@@ -57,7 +58,8 @@ def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,criterion='chi',verbose=Fa
             print('Individual: %s'%n)
             start = time.time()
             amp,sup,u,rs = initial[n]
-            obj = cpr(data,qs,sup,a,amp=amp,u=u,random_start=rs,pcc=pcc,gpu=gpu,unwrap=unwrap) #create multi-phaser object
+            with tf.device('/GPU:%d'%gpu):
+                obj = cpr(data,qs,sup,a,amp=amp,u=u,random_start=rs,pcc=pcc,gpu=True,unwrap=unwrap,center=center,free_vox_mask=free_vox_mask) #create multi-phaser object
             obj.run_recipes(recipes)
             chi,L = obj.extract_error()
             vals = obj.extract_vals()
@@ -141,7 +143,7 @@ def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,criterion='chi',verbose=Fa
         initial = [[new_amps[n],new_sups[n],new_us[n],False] for n in range(num_ind)]
         
         if verbose:
-            plot_u(us[winner],axis=2)
+            plot_u(us[winner],axis=plot_axis)
 #             fig,axs = plt.subplots(nrows=1,ncols=3,figsize= (15,5))
 #             c = np.array(us[winner].shape)[1]//2
 #             labels = ['$u_x$','$u_y$','$u_z$']
@@ -154,4 +156,4 @@ def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,criterion='chi',verbose=Fa
 
 #             plt.show()
 
-    return {"amp":amps[winner],"sup":Shrinkwrap(amps[winner],1.0,0.2),"u":us[winner],"error":best_chi,"L":best_L}
+    return {"amp":amps[winner],"sup":Shrinkwrap(amps[winner],1.0,0.1).numpy(),"u":us[winner],"chi":best_chi,"L":best_L}
