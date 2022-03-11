@@ -9,7 +9,15 @@ import gc
 import tensorflow as tf
 
 import matplotlib.pyplot as plt
-def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,criterion='chi',verbose=False,pcc=False,gpu=0,unwrap_gens=None,center=False,free_vox_mask = None,plot_axis=2):  
+def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,
+           criterion = 'chi',
+           verbose = False,
+           pcc = False,
+           gpu = 0,
+           unwrap_gens = None,
+           center = False,
+           free_vox_mask = None,
+           plot_axis = 2):  
     
     """
         Function which runs the coupled phaser GA
@@ -115,11 +123,7 @@ def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,criterion='chi',verbose=Fa
         new_sups = [Shrinkwrap(amp,1.0,0.1).numpy() for amp in new_amps]
         new_us = [np.mean([us[i],us[winner]],axis=0)*new_sups[i] for i in range(len(us))]
             
-#         #breeding during and after culling step. No image alignment
-#         if g >= cull[0]:
-#             new_amps = [np.sqrt(amps[winner]*amp) for amp in amps]
-#             new_sups = [Shrinkwrap(amp,1.0,0.1).numpy() for amp in new_amps]
-#             new_us = [np.mean([us[i],us[winner]],axis=0)*new_sups[i] for i in range(len(us))]
+
             
         #culling step
         if cull[g] != 1:
@@ -144,16 +148,6 @@ def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,criterion='chi',verbose=Fa
         
         if verbose:
             plot_u(us[winner],axis=plot_axis)
-#             fig,axs = plt.subplots(nrows=1,ncols=3,figsize= (15,5))
-#             c = np.array(us[winner].shape)[1]//2
-#             labels = ['$u_x$','$u_y$','$u_z$']
-#             for i,ax in enumerate(axs):
-#                 s = us[winner][i,c-5:c+5,c-5:c+5,c-5:c+5]
-#                 minn,maxx = s.mean()-3*np.std(s),s.mean()+3*np.std(s)
-#                 A = ax.imshow(us[winner][i,:,:,c],vmin=minn,vmax=maxx)
-#                 ax.set_title(labels[i])
-#                 fig.colorbar(A,ax=ax)
 
-#             plt.show()
 
     return {"amp":amps[winner],"sup":Shrinkwrap(amps[winner],1.0,0.1).numpy(),"u":us[winner],"chi":best_chi,"L":best_L}

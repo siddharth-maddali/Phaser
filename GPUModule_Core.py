@@ -47,6 +47,9 @@ class Mixin:
         self._cImage_fft_mod = tf.Variable( tf.abs( tf.signal.fft3d( self._cImage ) ) )
         self.BinaryErosion = self.__GPUErosion__
         self._error = []
+        self.nonzero_mask = tf.Variable(self._modulus.numpy() > 1,1,0,dtype='bool')
+        
+        
         self._UpdateError()
 
 
@@ -62,10 +65,7 @@ class Mixin:
     def _UpdateError( self ):
 
         self._error.append( 
-            tf.reduce_sum(self.mask*
-                ( self._cImage_fft_mod - tf.abs( self._modulus ) )**2/tf.abs(self._modulus)
-            ).numpy()
-        )
+            (tf.reduce_sum(self.mask*(self._cImage_fft_mod - tf.abs( self._modulus ) )**2)/tf.reduce_sum(self.mask*tf.abs(self._modulus)**2)).numpy())#[self.nonzero_mask].mean())
 
 
         return
@@ -130,4 +130,5 @@ class Mixin:
         )
         self._cImage = tf.Variable(self.finalImage,dtype=tf.complex64)
         self._support = tf.Variable(self.finalSupport,dtype=tf.complex64)
+        
         return

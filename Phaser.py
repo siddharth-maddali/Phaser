@@ -105,10 +105,6 @@ class Phaser(
             gpack = self.generateGPUPackage( )
             self.gpusolver = accelerator.Solver( gpack )
 
-        #if pcc==True:
-        #    self._pccSolver = PCSolver( np.absolute( self._modulus )**2, gpack )
-        #    self._kernel_f = self._pccSolver.getBlurKernel()
-        #    self._ModProject = self._ModProjectPC
 
         return
 

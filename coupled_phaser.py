@@ -34,8 +34,16 @@ class cpr:
         extract_error -- returns two error lists over all iterations, one for chi^2 and one for least squares loss
     
     """
-    def __init__(self,data,qs,sup,a,amp=False,u=False,random_start=True,pcc=False,gpu=True,params=None,unwrap=False,
-                 center=False,free_vox_mask=None):
+    def __init__(self,data,qs,sup,a,
+                 amp=False,
+                 u=False,
+                 random_start=True,
+                 pcc=False,
+                 gpu=True,
+                 params=None,
+                 unwrap=False,
+                 center=False,
+                 free_vox_mask=None):
         if random_start:
             u = np.repeat(sup[np.newaxis,:,:,:],3,axis=0)
             amp = sup
@@ -72,7 +80,7 @@ class cpr:
         return [recon._pccSolver._vars for recon in self.recons]
         
     def extract_error( self ):
-        self._error = tf.reduce_sum(tf.stack([r._error[1:] for r in self.recons]),axis=0)
+        self._error = tf.reduce_mean(tf.stack([r._error[1:] for r in self.recons]),axis=0)
 #         self._poisson_log= tf.reduce_sum(tf.stack([r._poisson_log[1:] for r in self.recons]),axis=0)
 
         return list(self._error.numpy()), list(self.L)
@@ -96,17 +104,6 @@ class cpr:
             phase *= supp
 
 
-#             if tf.math.count_nonzero(phase[phase>3.1]) >100:
-#                 phase= tf.where(phase<0.,phase+2*tf.constant(np.pi),phase)
-#             phase = phase.numpy()
-
-#             span = np.pi-phase.min()
-#             offset = np.pi - phase[self.dim[0]//2,self.dim[1]//2+5,self.dim[2]//2]
-#             phase += offset
-#             phase[phase>np.pi] -= 2*np.pi
-#             phase*=supp.numpy()
-#             phase -= phase.sum()/tf.math.reduce_sum(supp).numpy()
-#             phase = tf.Variable(phase,dtype=tf.complex64)
             phase -= tf.math.reduce_sum(phase)/tf.math.reduce_sum(supp)
             phase = tf.cast(phase,dtype=tf.complex64)
             amp = tf.cast(amp,dtype=tf.complex64)
@@ -124,24 +121,16 @@ class cpr:
         self.energies = tf.stack([tf.reduce_sum(tf.abs(r._cImage)) for r in self.recons])
         self.amp =  tf.stack([tf.abs(r._cImage)/tf.reduce_sum(tf.abs(r._cImage)) for r in self.recons])
         
-#         if self.unwrap:
-#         fig,axs = plt.subplots(ncols=len(self.recons),figsize=(15,3))
-#         for ax,ph in zip(axs.ravel(),self.amp):
-#             ax.imshow(ph[15:-15,ph.shape[1]//2,15:-15])
-#         plt.show()    
+ 
 
         self.amp = tf.math.reduce_mean(self.amp,axis=0)
 
         phs = [tf.math.angle(r._cImage)*tf.cast(r._support,dtype=tf.float32) for r in self.recons]
-
         small_sup = Shrinkwrap(self.amp,1.0,0.2)
 
+        #option for phase unwrapping
         if self.unwrap:
-#             fig,axs = plt.subplots(ncols=len(self.recons),figsize=(15,3))
-#             for ax,ph in zip(axs.ravel(),phs):
-#                 ax.imshow(ph[15:-15,ph.shape[1]//2,15:-15],vmin=-np.pi,vmax=np.pi)
-#             plt.show()
-            
+
             
             ss = np.array(self.sup.shape)//2
             for i in range(len(self.recons)):
@@ -152,10 +141,6 @@ class cpr:
 
                 phs[i] = tf.pad(ph,[[m[0],m[0]],[m[1],m[1]],[m[2],m[2]]],'constant')
                 phs[i] -= tf.reduce_mean(phs[i][ss[0]-10:ss[0]+10,ss[1]-10:ss[1]+10,ss[2]-10:ss[2]+10])
-#             fig,axs = plt.subplots(ncols=len(self.recons),figsize=(15,3))
-#             for ax,ph in zip(axs.ravel(),phs):
-#                 ax.imshow(ph[15:-15,ph.shape[1]//2,15:-15],vmin=-np.pi,vmax=np.pi)
-#             plt.show()
 
         phs = tf.stack(phs)
         
@@ -172,7 +157,7 @@ class cpr:
             self.sup = tf.Variable(Shrinkwrap(self.amp,sw[0],sw[1])) 
             inds = tf.where(self.sup==1)
 
-            pad = 2
+            pad = 1
             max_span = max([max([shp[i]//2-tf.math.reduce_min(inds[:,i]),tf.math.reduce_max(inds[:,i])-shp[i]//2]) for i in range(3)])
             self.span = [max_span + pad for i in range(3)]
 
@@ -242,14 +227,20 @@ class cpr:
                 if i%10 ==0:
                     r.Retrieve()
                     r._cImage = ai.check_get_conj_reflect(self.recons[0]._cImage,r._cImage)
+
+        
                     
             if self.center:   
                 if i%5 == 0:
-                    self.center_phase()              
+                    self.center_phase()  
+
             
             self.phase_to_u(recipe[1])
             self.UpdateSupport()
             self.u_to_phase()
+            
+                  
+            
 
 
         return

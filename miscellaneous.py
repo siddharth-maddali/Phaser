@@ -26,7 +26,7 @@ def fig_plot_u(u,minmax = None,axis=2):
             if axis == 2:
                 A = ax.imshow(u[i,:,:,c[3]],vmin=minmax[0],vmax=minmax[1])
             
-        ax.set_title(labels[i])
+        ax.set_title(labels[i],fontsize=30)
         ax.xaxis.set_visible(False)
         ax.yaxis.set_visible(False)
         cbar = fig.colorbar(A,ax=ax,shrink=0.9)
@@ -40,16 +40,15 @@ def rescale_noise(pks,max_val):
         pk = pks[m]
         pk = pk/pk.max()
         pk *= max_val
+        
 
 
 
         pk = np.random.poisson(pk)
+        pk = np.round(pk,0)
 
 
         pk[pk<0] = 0
-          
-        pk[ pk==0] = np.sort(np.unique(pk.ravel()))[1]
-
         peaks.append(pk)
     return peaks
 
@@ -99,8 +98,25 @@ def calc_strain(u,step_size):
 
     return strain.numpy()
 
-def plot_strain(strain,min_max=False,strn=True):
-    fig,axs = plt.subplots(nrows=1,ncols=6,figsize=(30,4))
+def calc_rotation(u,step_size):
+    
+    ux_x,ux_y,ux_z = tf.math.add(u[0,1:,:-1,:-1], -u[0,:-1,:-1,:-1])/1,tf.math.add(u[0,:-1,1:,:-1], -u[0,:-1,:-1,:-1])/1,tf.math.add(u[0,:-1,:-1,1:], -u[0,:-1,:-1,:-1])/1
+    uy_x,uy_y,uy_z = tf.math.add(u[1,1:,:-1,:-1], -u[1,:-1,:-1,:-1])/1,tf.math.add(u[1,:-1,1:,:-1], -u[1,:-1,:-1,:-1])/1,tf.math.add(u[1,:-1,:-1,1:], -u[1,:-1,:-1,:-1])/1
+    uz_x,uz_y,uz_z = tf.math.add(u[2,1:,:-1,:-1], -u[2,:-1,:-1,:-1])/1,tf.math.add(u[2,:-1,1:,:-1], -u[2,:-1,:-1,:-1])/1,tf.math.add(u[2,:-1,:-1,1:], -u[2,:-1,:-1,:-1])/1
+
+    omz = 0.5*tf.math.add(ux_y,-uy_x)
+    omy = 0.5*tf.math.add(ux_z,-uz_x)
+    omx = 0.5*tf.math.add(uy_z,-uz_y)
+    
+    strain = tf.stack([omx,omy,omz])/step_size
+#     strain = tf.pad(strain,[[0,0],[1,1],[1,1],[1,1]])
+    strain = tf.pad(strain,[[0,0],[0,1],[0,1],[0,1]])
+
+    return strain.numpy()
+
+
+def plot_strain(strain,min_max=False,strn=True,cmap='coolwarm',shp=(1,6)):
+    fig,axs = plt.subplots(nrows=shp[0],ncols=shp[1],figsize=(5.5*shp[1],4*shp[0]))
     c = np.array(strain.shape)[1]//2
     if strn:
         labels =[r'$\varepsilon_{xx}$',r'$\varepsilon_{yy}$',r'$\varepsilon_{zz}$',r'$\varepsilon_{yz}$',r'$\varepsilon_{xz}$',r'$\varepsilon_{xy}$'] 
@@ -111,11 +127,11 @@ def plot_strain(strain,min_max=False,strn=True):
             minn,maxx = min_max
         else:
             minn,maxx = strain[:,c-5:c+5,c-5:c+5,c-5:c+5].min(),strain[:,c-5:c+5,c-5:c+5,c-5:c+5].max()
-        A = ax.imshow(strain[i,:,:,c],vmin=minn,vmax=maxx,cmap='coolwarm')
-        ax.set_title(labels[i])
-        fig.colorbar(A,ax=ax)
+        A = ax.imshow(strain[i,:,:,c],vmin=minn,vmax=maxx,cmap=cmap)
+        ax.set_title(labels[i],fontsize=28)
+        fig.colorbar(A,ax=ax,format='%.0e')
     plt.show()
-    return
+    return 
 def plot_u(u,minmax = None,axis=2):
     fig,axs = plt.subplots(nrows=1,ncols=3,figsize= (15,4))
     c = np.array(u.shape)//2
@@ -189,33 +205,57 @@ def calc_u_vol(scans,gs,specfile,a,shape):
     
     
     return u_vol
-def calc_stress(strain,stiff,o_mats):
-    o_mats = np.repeat(o_mats[np.newaxis,:,:],1,axis=0)
-    shp = strain.shape
-    strain = np.array([[strain[0],strain[5],strain[4]],
-                       [strain[5],strain[1],strain[3]],
-                       [strain[4],strain[3],strain[2]]])
-    strain = np.moveaxis(strain.reshape((3,3,-1)),-1,0)
 
-    
-    strain = np.transpose(o_mats,axes=(0,2,1))@strain@o_mats
-    
-    
-    strain = np.stack([strain[:,0,0],strain[:,1,1],strain[:,2,2],strain[:,1,2],strain[:,0,2],strain[:,0,1]])
-    
-    
+
+
+def transform_tensor(tensor,o_mat,reshape=True):
+    o_mat = o_mat[np.newaxis,:,:]
+    shp = tensor.shape
+    tensor = np.array([[tensor[0],tensor[5],tensor[4]],
+                   [tensor[5],tensor[1],tensor[3]],
+                   [tensor[4],tensor[3],tensor[2]]])
+    tensor = np.moveaxis(tensor.reshape((3,3,-1)),-1,0)
+    o_mat@tensor@np.transpose(o_mat,axes=(0,2,1))
+    tensor = np.array([tensor[:,0,0],tensor[:,1,1],tensor[:,2,2],tensor[:,1,2],tensor[:,0,2],tensor[:,0,1]])
+    if reshape:
+        tensor = tensor.reshape(shp)
+    return tensor
+
+def calc_stress(strain,stiff,o_mat):
+    shp = strain.shape
+    strain = transform_tensor(strain,o_mat.T,reshape=False)
     
     strain[3:,:] *=2    
 
-    stress = stiff@strain#np.einsum('ilmn,ij->jlmn',strain,stiffness)
-
-    stress = np.array([[stress[0],stress[5],stress[4]],
-                   [stress[5],stress[1],stress[3]],
-                   [stress[4],stress[3],stress[2]]])
-    stress = np.moveaxis(stress.reshape((3,3,-1)),-1,0)
+    stress = stiff@strain
     
-    stress = o_mats@stress@np.transpose(o_mats,axes=(0,2,1))
+    stress = transform_tensor(stress,o_mat,reshape=False)
 
-    stress = np.array([stress[:,0,0],stress[:,1,1],stress[:,2,2],stress[:,1,2],stress[:,0,2],stress[:,0,1]]).reshape(shp)
-    
-    return stress
+    return stress.reshape(shp)
+
+def plot_rotation(u,minmax = None,axis=2):
+    fig,axs = plt.subplots(nrows=1,ncols=3,figsize= (15,4))
+    c = np.array(u.shape)//2
+    labels = [r'$\omega_x$',r'$\omega_y$',r'$\omega_z$']
+    for i,ax in enumerate(axs):
+        s = u[i,c[1]-5:c[1]+5,c[2]-5:c[2]+5,c[3]-5:c[3]+5]   
+        if minmax == None:
+            if axis == 0:
+                
+                A = ax.imshow(u[i,c[1],:,:])
+            if axis == 1:
+                A = ax.imshow(u[i,:,c[2],:])
+            if axis == 2:
+                A = ax.imshow(u[i,:,:,c[3]])
+        else:
+            if axis == 0:
+                A = ax.imshow(u[i,c[1],:,:],vmin=minmax[0],vmax=minmax[1])
+            if axis == 1:
+                A = ax.imshow(u[i,:,c[2],:],vmin=minmax[0],vmax=minmax[1])
+            if axis == 2:
+                A = ax.imshow(u[i,:,:,c[3]],vmin=minmax[0],vmax=minmax[1])
+            
+        ax.set_title(labels[i])
+        fig.colorbar(A,ax=ax)
+    plt.show()
+    return
