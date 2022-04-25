@@ -6,7 +6,7 @@ Created on Tue May 19 16:16:27 2020
 """
 import numpy as np
 import matplotlib.pyplot as plt
-def calc_strain(u,sup,del_x,plot=True,plot_range=[-0.003,0.003]):
+def calc_strain_cpu(u,sup,del_x,plot=True,plot_range=[-0.003,0.003]):
     dif_x = np.where(np.diff(sup,axis=0,append=0)!=0,1,0)
     dif_y = np.where(np.diff(sup,axis=1,append=0)!=0,1,0)
     dif_z = np.where(np.diff(sup,axis=2,append=0)!=0,1,0)

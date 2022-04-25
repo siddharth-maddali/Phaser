@@ -5,7 +5,7 @@ from matplotlib.colors import LogNorm
 import align_images as ai
 from shrinkwrap import Shrinkwrap as sw
 from numpy.fft import fftshift,fftn
-sys.path.append('Phaser-partialcoherence')
+
 import numpy as np
 import Phaser as ph
 import matplotlib.pyplot as plt
@@ -88,6 +88,7 @@ def run_GA(signal,recipes,num_gen,num_ind,cull,support=None,fitness='chi',pcc=Fa
         
         
         if plot:
+            aa = np.absolute(imgs[winner])
             fig,ax = plt.subplots(ncols = 3,figsize=(15,5))
             A = ax[0].imshow(signal[:,:,imgs[winner].shape[2]//2],norm=LogNorm()) 
             ax[0].set_title('Signal from Data')
@@ -95,7 +96,7 @@ def run_GA(signal,recipes,num_gen,num_ind,cull,support=None,fitness='chi',pcc=Fa
             B=ax[1].imshow(np.absolute(fftshift(fftn(fftshift(imgs[winner])))**2)[:,:,imgs[winner].shape[2]//2],norm=LogNorm())
             ax[1].set_title('Forward-Modeled Signal')
             fig.colorbar(B,ax=ax[1])
-            C=ax[2].imshow(np.absolute(imgs[winner])[:,imgs[winner].shape[1]//2,:])
+            C=ax[2].imshow((aa/aa.max())[:,imgs[winner].shape[1]//2,:],vmax=1,vmin=0)
             ax[2].set_title('Reconstructed Amplitude')
             fig.colorbar(C,ax=ax[2])
             plt.show()

@@ -47,8 +47,9 @@ class Mixin:
         self._cImage_fft_mod = tf.Variable( tf.abs( tf.signal.fft3d( self._cImage ) ) )
         self.BinaryErosion = self.__GPUErosion__
         self._error = []
-        self.nonzero_mask = tf.Variable(self._modulus.numpy() > 1,1,0,dtype='bool')
-        
+        msk = np.where(self._modulus.numpy() > 3,1,0)
+        self.nonzero_mask = tf.Variable(msk,dtype=tf.float32)
+#         self.fourier_sup = (msk*self.mask.numpy()).sum()
         
         self._UpdateError()
 
@@ -63,9 +64,8 @@ class Mixin:
         return
 
     def _UpdateError( self ):
-
-        self._error.append( 
-            (tf.reduce_sum(self.mask*(self._cImage_fft_mod - tf.abs( self._modulus ) )**2)/tf.reduce_sum(self.mask*tf.abs(self._modulus)**2)).numpy())#[self.nonzero_mask].mean())
+        self._error.append(tf.reduce_sum((self._cImage_fft_mod - tf.abs( self._modulus ))**2).numpy())
+#         self._error.append( tf.reduce_mean((self._cImage_fft_mod - tf.abs( self._modulus ))**2 ,self.nonzero_mask*self.mask) /tf.boolean_mask(tf.abs(self._modulus)**2,self.nonzero_mask*self.mask)).numpy())
 
 
         return
@@ -85,9 +85,13 @@ class Mixin:
         return
 
     def _UpdateHIOStep( self ):
-        self._cImage.assign( tf.where(self.unmask,
-            ( self._support * self._cImage ) +\
-            self._support_comp * ( self._cachedImage - self._beta * self._cImage ),self._cImage))
+        self._cImage.assign(tf.signal.ifft3d( self._modulus * tf.exp( 1.j * tf.cast( 
+                    tf.math.angle( tf.signal.fft3d( self._cImage ) ), 
+                    dtype=tf.complex64 ) 
+            ) ))
+#         self._cImage.assign( tf.where(self.unmask,
+#             ( self._support * self._cImage ) +\
+#             self._support_comp * ( self._cachedImage - self._beta * self._cImage ),self._cImage))
         return
         
 
@@ -103,12 +107,17 @@ class Mixin:
         return
 
     def _ModProject( self ):
-        self._cImage.assign( tf.where(self.unmask,
-            tf.signal.ifft3d( self._modulus * tf.exp( 1.j * tf.cast( 
+        self._cImage.assign(tf.signal.ifft3d( self._modulus * tf.exp( 1.j * tf.cast( 
                     tf.math.angle( tf.signal.fft3d( self._cImage ) ), 
                     dtype=tf.complex64 
                 ) 
-            ) ),self._cImage))
+            ) ))
+#         self._cImage.assign( tf.where(self.unmask,
+#             tf.signal.ifft3d( self._modulus * tf.exp( 1.j * tf.cast( 
+#                     tf.math.angle( tf.signal.fft3d( self._cImage ) ), 
+#                     dtype=tf.complex64 
+#                 ) 
+#             ) ),self._cImage))
         return
 
 
@@ -132,3 +141,5 @@ class Mixin:
         self._support = tf.Variable(self.finalSupport,dtype=tf.complex64)
         
         return
+
+

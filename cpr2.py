@@ -1,31 +1,30 @@
+
+   
 from shrinkwrap import Shrinkwrap
 import sys
-import align_images as ai
+
 import Phaser as ph
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-from skimage.restoration import unwrap_phase
-from miscellaneous import unpack_obj
-from numpy.fft import fftn,fftshift
-class cpr:
 
+class cpr:
+    
     """
     Class similar to phaser
     
     inputs:
         data -- stack of datasets (numpy array, dtype=float,dimensions=(num_datasetsxnxnxn))
         qs -- q vectors for reflections corresponding to the datasets in data (numpy array, dtype=float,dimensions=(num_datasetsx3)) 
-        obj -- guess for complex displacement object (numpy array, dtype=float,dimensions=(3xnxnxn)). Must be specified if random_start = False.
+        sup -- guess for object support (numpy array, dtype=float,dimensions=(nxnxn)) 
+        amp -- guess for amplitude (numpy array, dtype=float,dimensions=(nxnxn)). Must be specified if random_start = False.
+        u -- guess for displacement (numpy array, dtype=float,dimensions=(3xnxnxn)). Must be specified if random_start = False.
         a -- lattice parameter (dtype=float units: nm)
         random_start -- option to start with random phase on all constituents. If true, u is ignored (boolean)
-        center -- option to phases of each constituent about zero (dtype=boolean)
+        bad_pix -- hacky fix to phase wraps. If a certain number of pixels are close to pi or -pi, we add 2*pi to those pixels (dtype int)
         pcc -- option to turn on partial coherence correction (dtype=boolean)
-        free_vox_mask -- numpy mask to determine which voxels are used for optimization (numpy array,dtype=boolean, dimensions = (nxnxn))
         gpu -- option to use gpu or not (dtype=boolean)
-        unwrap -- option to unwrap phases (dtype=boolean)
-        params -- partial coherence gaussian parameters, one for each constituent (numpy array,dytpe=float, dimensions = (num_datasetsx6))
         
     functions:
         run_recipes -- runs multi_phaser recipes (see tutorial.ipynb for details) --> example: [['ER:20',[1.0,0.1]],['HIO:20',[0]]] 
@@ -34,26 +33,12 @@ class cpr:
         extract_error -- returns two error lists over all iterations, one for chi^2 and one for least squares loss
     
     """
-    def __init__(self,data,qs,a,obj=None,
-                 random_start=True,
-                 pcc=False,
-                 gpu=True,
-                 params=None,
-                 unwrap=False,
-                 center=False,
-                 free_vox_mask=None):
-        
-        if obj is not None:
-            u,amp,sup = unpack_obj(obj)
+    def __init__(self,data,qs,sup,a,amp=False,u=False,random_start=True,bad_pix=200,pcc=False,gpu=True):
         if random_start:
-            sup = np.absolute(fftshift(fftn(data[0])))
-            sup = np.where(sup>0.001*sup.max(),1,0)
-            
             u = np.repeat(sup[np.newaxis,:,:,:],3,axis=0)
             amp = sup
-        self.unwrap = unwrap
-        self.center = center
-        
+            
+        self.bad_pix = bad_pix
         self.u = tf.Variable(u,dtype=tf.float32)
         self.sup = tf.Variable(sup,dtype=tf.float32)
         self.amp = tf.Variable(amp,dtype=tf.float32)
@@ -68,33 +53,28 @@ class cpr:
 
         self.recons = [ph.Phaser(
             modulus = np.sqrt( data[i] ),
-            support = None if random_start else sup,
-             img_guess = None if random_start else imgs[i],
+            support = sup,
+             img_guess = imgs[i],
             random_start = random_start,pcc=pcc,gpu=gpu).gpusolver for i in range(len(data))]
-        if params != None:
-            for recon,param in zip(self.recons,params):
-                recon._pccSolver._vars = param
-                
-                
+
+        
         self._error = []
         self.L = []
         self._poisson_log = []
 
-
-    def extract_params(self):
-        return [recon._pccSolver._vars for recon in self.recons]
+              
         
     def extract_error( self ):
-        self._error = tf.reduce_mean(tf.stack([r._error[1:] for r in self.recons]),axis=0)
+        self._error = tf.reduce_sum(tf.stack([r._error[1:] for r in self.recons]),axis=0)
 #         self._poisson_log= tf.reduce_sum(tf.stack([r._poisson_log[1:] for r in self.recons]),axis=0)
-
+        
         return list(self._error.numpy()), list(self.L)
-    def extract_obj(self):
+    def extract_vals(self):
         self.u = tf.stack([tf.pad(s,self.paddings,'constant') for s in self.u])
         self.sup = tf.pad(self.sup,self.paddings,'constant')
         self.amp = tf.pad(self.amp,self.paddings,'constant')
-#         {'u':self.u.numpy()*self.sup.numpy()[np.newaxis,:,:,:],'amp':self.amp.numpy(),'sup':self.sup.numpy()}
-        return  self.amp.numpy()*self.sup.numpy()*np.exp(self.u.numpy()*1j)
+        
+        return {'u':self.u.numpy()*self.sup.numpy()[np.newaxis,:,:,:],'amp':self.amp.numpy(),'sup':self.sup.numpy()}
 
     def UpdateSupport( self ):
 
@@ -109,6 +89,10 @@ class cpr:
             phase *= supp
 
 
+            if tf.math.count_nonzero(phase[phase>3.1]) >self.bad_pix:
+
+                phase= tf.where(phase<0.,phase+2*tf.constant(np.pi),phase)
+            phase *= supp
             phase -= tf.math.reduce_sum(phase)/tf.math.reduce_sum(supp)
             phase = tf.cast(phase,dtype=tf.complex64)
             amp = tf.cast(amp,dtype=tf.complex64)
@@ -119,143 +103,102 @@ class cpr:
 
 
 
+    
 
-
-
-    def phase_to_u(self,sw,plot_amp):
-        self.energies = tf.stack([tf.reduce_sum(tf.abs(r._cImage)) for r in self.recons])
-        self.amp =  tf.stack([tf.abs(r._cImage)/tf.reduce_sum(tf.abs(r._cImage)) for r in self.recons])
+    
+    def phase_to_u(self,sw):
+        self.energies = tf.stack([tf.norm(tf.abs(r._cImage)) for r in self.recons])
         
-        if plot_amp:
-            fig,axs = plt.subplots(ncols=self.amp.shape[0],figsize = (15,4))
-            for ax,amp in zip(axs,self.amp):
-                ax.imshow(amp[20:-20,20:-20,self.amp.shape[3]//2].T)
-            plt.show()
-
-        self.amp = tf.math.reduce_mean(self.amp,axis=0)
-
-        phs = [tf.math.angle(r._cImage)*tf.cast(r._support,dtype=tf.float32) for r in self.recons]
-        small_sup = Shrinkwrap(self.amp,1.0,0.2)
-
-        #option for phase unwrapping
-        if self.unwrap:
-
-            
-            ss = np.array(self.sup.shape)//2
-            for i in range(len(self.recons)):
-
-                m = np.array(phs[i].shape)//2-ss
-                p = phs[i][self.dim[0]//2-ss[0]:self.dim[0]//2+ss[0],self.dim[1]//2-ss[1]:self.dim[1]//2+ss[1],self.dim[2]//2-ss[2]:self.dim[2]//2+ss[2]]
-                ph = tf.Variable(unwrap_phase(p.numpy()),dtype=tf.float32)*self.sup
-
-                phs[i] = tf.pad(ph,[[m[0],m[0]],[m[1],m[1]],[m[2],m[2]]],'constant')
-                phs[i] -= tf.reduce_mean(phs[i][ss[0]-10:ss[0]+10,ss[1]-10:ss[1]+10,ss[2]-10:ss[2]+10])
-
-        phs = tf.stack(phs)
-        
-        
+        self.amp = tf.math.reduce_mean( tf.stack([tf.abs(r._cImage)/tf.reduce_sum(tf.abs(r._cImage)) for r in self.recons]),axis=0)
+        phs = tf.stack([tf.math.angle(r._cImage) for r in self.recons])
         phs = tf.transpose(phs,[1,2,3,0])
         shp = phs.shape
         phs = tf.reshape(phs,(shp[0],shp[1],shp[2],shp[3],1))
+        
+        small_sup = Shrinkwrap(self.amp,1.0,0.2)
+        
+        
+        if sw[0] != 0:
+            
+            self.sup = tf.Variable(Shrinkwrap(self.amp,sw[0],sw[1])) 
+            inds = tf.where(self.sup==1)
+           
+            pad = 2
+            max_span = max([max([shp[i]//2-tf.math.reduce_min(inds[:,i]),tf.math.reduce_max(inds[:,i])-shp[i]//2]) for i in range(3)])
+            self.span = [max_span + pad for i in range(3)]
+            
+
 
         
 
-
-        if sw[0] != 0:
-
-            self.sup = tf.Variable(Shrinkwrap(self.amp,sw[0],sw[1])) 
-            inds = tf.where(self.sup==1)
-
-            pad = 1
-            max_span = max([max([shp[i]//2-tf.math.reduce_min(inds[:,i]),tf.math.reduce_max(inds[:,i])-shp[i]//2]) for i in range(3)])
-            self.span = [max_span + pad for i in range(3)]
-
-
-
-
-
         phs = phs[shp[0]//2-self.span[0]:shp[0]//2+self.span[0],shp[1]//2-self.span[1]:shp[1]//2+self.span[1],shp[2]//2-self.span[2]:shp[2]//2+self.span[2],:,:]
-
+        
         self.amp = self.amp[shp[0]//2-self.span[0]:shp[0]//2+self.span[0],shp[1]//2-self.span[1]:shp[1]//2+self.span[1],shp[2]//2-self.span[2]:shp[2]//2+self.span[2]]
         self.sup = self.sup[self.sup.shape[0]//2-self.span[0]:self.sup.shape[0]//2+self.span[0],self.sup.shape[1]//2-self.span[1]:self.sup.shape[1]//2+self.span[1],self.sup.shape[2]//2-self.span[2]:self.sup.shape[2]//2+self.span[2]]
         small_sup = small_sup[shp[0]//2-self.span[0]:shp[0]//2+self.span[0],shp[1]//2-self.span[1]:shp[1]//2+self.span[1],shp[2]//2-self.span[2]:shp[2]//2+self.span[2]]
 
 
-
-
+        
+        
         self.amp *= self.sup
         self.amp = self.amp/tf.math.reduce_sum(self.amp)     
-
+        
         self.shp1=phs.shape[:4]
         qs = tf.ones((self.shp1[0],self.shp1[1],self.shp1[2],self.shp1[3],3))*self.Qs
         self.u = tf.linalg.lstsq( qs, phs, l2_regularizer=0.0, fast=True, name=None)
         norm_L = tf.reduce_sum((tf.matmul(qs,self.u)-phs)**2,axis=3)
-
-
-
+        
+        
+        
         norm_L = norm_L[:,:,:,0]*self.amp*small_sup
-
-
+        
+        
         L = (tf.reduce_sum(norm_L)/tf.reduce_sum(small_sup)).numpy()
         self.L.append(L)
         self.u = tf.reshape(self.u,(self.shp1[0],self.shp1[1],self.shp1[2],3))
         self.u = tf.transpose(self.u,[3,0,1,2])
         paddings = [(self.dim[i]-self.shp1[i])//2 for i in range(3)]
-
+       
         self.paddings = [[p,p] for p in paddings]
-
+                         
         return
-    
-
-
+   
     def u_to_phase(self):        
         u = tf.reshape(self.u,(3,-1))
-
+        
         phase = tf.matmul(self.Qs,u) 
-
+        
         phase = tf.reshape(phase,(self.Qs.shape[0],self.shp1[0],self.shp1[1],self.shp1[2]))
-
+        
         phase = tf.pad(phase,[[0,0],self.paddings[0],self.paddings[1],self.paddings[2]],'constant')
-
+        
         energies = tf.cast(self.energies,dtype=tf.complex64)
         amp = tf.pad(self.amp,self.paddings,'constant')
-        amp = tf.cast(amp/tf.reduce_sum(amp),dtype=tf.complex64)
-
+        amp = tf.cast(amp/tf.norm(amp),dtype=tf.complex64)
+        
         phase = tf.cast(phase,dtype=tf.complex64)
 
         for i,r in enumerate(self.recons):
             r._cImage = tf.Variable(amp*energies[i]*tf.math.exp(phase[i]*1j),dtype=tf.complex64)
         return   
-
+        
     def run_recipes(self,recipes):
         for i,recipe in enumerate(recipes):
             self.iteration = i
-
+            
             for r in self.recons: 
-                r.runRecipe(recipe[0]) 
-                
-
+                r.runRecipe(recipe[0])   
                 if i%10 ==0:
                     r.Retrieve()
-                    r._cImage = ai.check_get_conj_reflect(self.recons[0]._cImage,r._cImage)
-
-        
-            plot_amp=False       
-            if self.center:   
-                if i%5 == 0:
-                    plot_amp=True
-                    self.center_phase()  
-
-            
-            self.phase_to_u(recipe[1],plot_amp)
+            if i<5:
+                self.center_phase()
+            self.phase_to_u(recipe[1])
             self.UpdateSupport()
             self.u_to_phase()
-            
-                  
-            
 
-
+        
         return
+    
 
+    
 
-   

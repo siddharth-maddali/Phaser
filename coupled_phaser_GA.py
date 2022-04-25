@@ -4,7 +4,7 @@ from coupled_phaser import cpr
 import time    
 import align_images as ai
 from shrinkwrap2 import Shrinkwrap
-from miscellaneous import plot_u
+from miscellaneous import plot_u,unpack_obj
 import gc
 import tensorflow as tf
 
@@ -23,9 +23,9 @@ def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,
         Function which runs the coupled phaser GA
     
     inputs:
-        data -- stack of datasets (numpy array, dtype=float,dimensions=(num_datasetsxnxnxn))
-        qs -- q vectors for reflections corresponding to the datasets in data (numpy array, dtype=float,dimensions=(num_datasetsx3)) 
-        sup -- guess for object support (numpy array, dtype=float,dimensions=(nxnxn)) 
+        data -- stack of datasets (numpy.ndarray, dtype=float,dimensions=(num_datasetsxnxnxn))
+        qs -- q vectors for reflections corresponding to the datasets in data (nump.ndarray, dtype=float,dimensions=(num_datasetsx3)) 
+        sup -- guess for object support (nump.ndarray, dtype=float,dimensions=(nxnxn)) 
         a -- lattice parameter (dtype=float units: nm)
         Recipes -- list of recipes for each generation (see Tutorial.ipynb for more info)
         num_gen -- number of generations in GA (dtype=int)
@@ -33,11 +33,12 @@ def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,
         cull -- list of factors by which to cull the population after each generation (list, dtype=int)
         criterion -- criterion by which to rank individuals for breeding (string, 'chi', 'sharp','max_volume','norm_sharp','least_squares')
         verbose -- option to print intermediate results (dtype=boolean)
-        center -- option to phases of each constituent about zero (dtype=boolean)
+        center -- option to center phases of each constituent about zero (dtype=boolean)
         pcc -- option to turn on partial coherence correction (dtype=boolean)
-        free_vox_mask -- numpy mask to determine which voxels are used for optimization (numpy array,dtype=boolean, dimensions = (nxnxn))
+        free_vox_mask -- numpy mask to determine which voxels are used for optimization (nump.ndarray,dtype=boolean, dimensions = (nxnxn))
         gpu -- option to use gpu or not (dtype=boolean)
         unwrap_gens -- boolean list to turn on phase unwrapping generation by generation (list length: num_gen, dtype=boolean)
+        plot_axis -- axis to cross-section for plotting (dtype=int)
         
     returns:
         vals -- dictionary containing u,amp,sup, list of chi^2 errors and list of least squares losses after each generation
@@ -49,39 +50,37 @@ def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,
     if unwrap_gens == None:
         unwrap_gens = np.zeros(num_gen,dtype=np.bool)
         
-    
-    initial =[[sup,sup,np.zeros((3,sup.shape[0],sup.shape[1],sup.shape[2])),True] for i in range(num_ind)]
+    cull = cull[1:]
+    initial =[[None,sup,True] for i in range(num_ind)]
     best_chi,best_L = [],[]
     tm_est = 0
     for g in range(num_gen):
         unwrap = unwrap_gens[g]
-        gc.collect()
         recipes = Recipes[g]
+        
         if verbose:
             print('##########################################################################################')
             print('Generation: %s'%g)
-        us,amps,sups,chis,Ls = [],[],[],[],[] #lists which will contain the values for each individual
+        objs,chis,Ls = [],[],[] #lists which will contain the values for each individual
         for n in range(num_ind):
             gc.collect()
             print('Individual: %s'%n)
             start = time.time()
-            amp,sup,u,rs = initial[n]
-            with tf.device('/GPU:%d'%gpu):
-                obj = cpr(data,qs,sup,a,amp=amp,u=u,random_start=rs,pcc=pcc,gpu=True,unwrap=unwrap,center=center,free_vox_mask=free_vox_mask) #create multi-phaser object
-            obj.run_recipes(recipes)
-            chi,L = obj.extract_error()
-            vals = obj.extract_vals()
-            u = vals['u']
-            amp = vals['amp']
-            sup = vals['sup']
+            obj,sup,rs = initial[n]
+            
+            #create multi-phaser object
+            recon = cpr(data,qs,a,obj=obj,random_start=rs,pcc=pcc,unwrap=unwrap,center=center,free_vox_mask=free_vox_mask) 
+            recon.run_recipes(recipes)
+            
+            chi,L = recon.extract_error()
+            obj = recon.extract_obj()
+            
             tm = time.time()-start
-#             gc.collect()
+
             # add values for individual
             
             Ls.append(L[-1])
-            amps.append(amp)
-            sups.append(sup)
-            us.append(u)
+            objs.append(obj)
             
             chis.append(chi[-1])
             
@@ -89,15 +88,13 @@ def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,
                 print('Time to Reconstruct: %s seconds'%np.round(tm,2))
                 print('L:',L[-1],'\nChi:',chi[-1],'\n')
 
-
-
-
+        
         #dictionary containing inputs necessary for calculating each fitness metric in score.py
         w_dict = { 
                  'chi':chis,
-                 'sharp':amps,
-                 'max_volume':sups,
-                 'norm_sharp':amps,
+                 'sharp':objs,
+                 'max_volume':objs,
+                 'norm_sharp':objs,
                  'least_squares':Ls} 
         
         scores,ws,winner = score(w_dict[criterion],weight=criterion)
@@ -106,48 +103,51 @@ def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,
         best_chi.append(chis[winner])
         best_L.append(Ls[winner])
         
-        m = max([a.shape[0] for a in amps])
-        amps = [np.pad(a,([(m-a.shape[0])//2,(m-a.shape[0])//2],[(m-a.shape[0])//2,(m-a.shape[0])//2],[(m-a.shape[0])//2,(m-a.shape[0])//2])) for a in amps]
-        sups = [np.pad(a,([(m-a.shape[0])//2,(m-a.shape[0])//2],[(m-a.shape[0])//2,(m-a.shape[0])//2],[(m-a.shape[0])//2,(m-a.shape[0])//2])) for a in sups]
-        
-        us = [np.pad(a,([0,0],[(m-a.shape[1])//2,(m-a.shape[1])//2],[(m-a.shape[1])//2,(m-a.shape[1])//2],[(m-a.shape[1])//2,(m-a.shape[1])//2])) for a in us]
+        m = max([a.shape[0] for a in objs])
+        objs = [np.pad(a,([0,0],[(m-a.shape[0])//2,(m-a.shape[0])//2],[(m-a.shape[0])//2,(m-a.shape[0])//2],[(m-a.shape[0])//2,(m-a.shape[0])//2])) for a in objs]
+
         
         #breeding step before culling. align images first
         
-        imgs = [amps[i]*np.exp(us[i]*1j) for i in range(len(us))]
-        imgs = [ai.check_get_conj_reflect_us(imgs[winner],img) for img in imgs]
-        amps = [np.absolute(img[0]) for img in imgs]
-        sups = [Shrinkwrap(amp,1.0,0.1).numpy() for amp in amps]
-        us = [np.angle(imgs[i])*sups[i] for i in range(len(imgs))]
-        new_amps = [np.sqrt(amps[winner]*amp) for amp in amps]
-        new_sups = [Shrinkwrap(amp,1.0,0.1).numpy() for amp in new_amps]
-        new_us = [np.mean([us[i],us[winner]],axis=0)*new_sups[i] for i in range(len(us))]
+        
+        objs = [ai.check_get_conj_reflect_us(objs[winner],obj) for obj in objs]
+        new_objs = [np.sqrt(objs[winner]*obj) for obj in objs]
+        new_sups = [Shrinkwrap(np.absolute(obj)[0],1.0,0.1).numpy() for obj in objs]
+#         amps = [np.absolute(img[0]) for img in imgs]
+#         sups = [Shrinkwrap(amp,1.0,0.1).numpy() for amp in amps]
+#         us = [np.angle(imgs[i])*sups[i] for i in range(len(imgs))]
+#         new_amps = [np.sqrt(amps[winner]*amp) for amp in amps]
+#         new_sups = [Shrinkwrap(amp,1.0,0.1).numpy() for amp in new_amps]
+#         new_us = [np.mean([us[i],us[winner]],axis=0)*new_sups[i] for i in range(len(us))]
             
 
             
         #culling step
-        if cull[g] != 1:
-            
-            new_amps = [new_amps[n] for n in range(num_ind) if scores[n]>num_ind//cull[g]]
-            new_sups = [new_sups[n] for n in range(num_ind) if scores[n]>num_ind//cull[g]]
-            new_us = [new_us[n] for n in range(num_ind) if scores[n]>num_ind//cull[g]]
-            num_ind = num_ind//cull[g]
+        if g != num_gen-1:
+            if cull[g] != 1:
+
+#                 new_amps = [new_amps[n] for n in range(num_ind) if scores[n]>num_ind//cull[g]]
+                new_sups = [new_sups[n] for n in range(num_ind) if scores[n]>num_ind//cull[g]]
+                new_objs = [new_objs[n] for n in range(num_ind) if scores[n]>num_ind//cull[g]]
+                num_ind = num_ind//cull[g]
         print('Individual %s Wins'%winner)
-        shp2 = np.array(new_amps[0].shape)
+        shp2 = np.array(new_sups[0].shape)
         
         shp1 = np.array(data[0].shape)
         
         paddings = (shp1-shp2)//2
         
         paddings = [[p,p] for p in paddings]
-        new_amps = [np.pad(n,paddings) for n in new_amps]
+        new_objs = [np.pad(n,[[0,0],paddings[0],paddings[1],paddings[2]]) for n in new_objs]
         new_sups = [np.pad(n,paddings) for n in new_sups]
-        new_us = [np.pad(n,[[0,0],paddings[0],paddings[1],paddings[2]]) for n in new_us]
+        
         #set values for next generation
-        initial = [[new_amps[n],new_sups[n],new_us[n],False] for n in range(num_ind)]
+        initial = [[new_objs[n],new_sups[n],False] for n in range(num_ind)]
         
         if verbose:
-            plot_u(us[winner],axis=plot_axis)
+            
+            plot_u(np.angle(objs[winner]),axis=plot_axis)
 
 
-    return {"amp":amps[winner],"sup":Shrinkwrap(amps[winner],1.0,0.1).numpy(),"u":us[winner],"chi":best_chi,"L":best_L}
+    return {"obj":objs[winner],"chi":best_chi,"L":best_L}
+

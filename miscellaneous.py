@@ -3,37 +3,13 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from copy import copy
 from spec import parse_spec
+from shrinkwrap2 import Shrinkwrap
+from scipy import ndimage
 
-def fig_plot_u(u,minmax = None,axis=2):
-    fig,axs = plt.subplots(nrows=1,ncols=3,figsize= (15,4))
-    c = np.array(u.shape)//2
-    labels = ['$u_x$','$u_y$','$u_z$']
-    for i,ax in enumerate(axs):
-        s = u[i,c[1]-5:c[1]+5,c[2]-5:c[2]+5,c[3]-5:c[3]+5]   
-        if minmax == None:
-            if axis == 0:
-                
-                A = ax.imshow(u[i,c[1],:,:])
-            if axis == 1:
-                A = ax.imshow(u[i,:,c[2],:])
-            if axis == 2:
-                A = ax.imshow(u[i,:,:,c[3]])
-        else:
-            if axis == 0:
-                A = ax.imshow(u[i,c[1],:,:],vmin=minmax[0],vmax=minmax[1])
-            if axis == 1:
-                A = ax.imshow(u[i,:,c[2],:],vmin=minmax[0],vmax=minmax[1])
-            if axis == 2:
-                A = ax.imshow(u[i,:,:,c[3]],vmin=minmax[0],vmax=minmax[1])
-            
-        ax.set_title(labels[i],fontsize=30)
-        ax.xaxis.set_visible(False)
-        ax.yaxis.set_visible(False)
-        cbar = fig.colorbar(A,ax=ax,shrink=0.9)
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
+import matplotlib.font_manager as fm
 
-        cbar.set_label('nm', rotation=270)
-    
-    return fig
+
 def rescale_noise(pks,max_val):
     peaks = []
     for m in range(len(pks)):
@@ -41,11 +17,8 @@ def rescale_noise(pks,max_val):
         pk = pk/pk.max()
         pk *= max_val
         
-
-
-
         pk = np.random.poisson(pk)
-        pk = np.round(pk,0)
+        # pk = np.round(pk,0)
 
 
         pk[pk<0] = 0
@@ -54,37 +27,51 @@ def rescale_noise(pks,max_val):
 
 
 def center_u(u,support):
-    support = support
+    support = support == 1
     for i in range(3):
         t = copy(u[i])
         t[support] -= t[support].mean()
         u[i] = t
     return u
 
-# def calc_strain(u,step_size):
-#     u = tf.Variable(u)
-# #     step_size = tf.Variable(step_size,dtype=tf.float32)
-#     ux_x,ux_y,ux_z = tf.math.add(u[0,2:,:-2,:-2], -u[0,:-2,:-2,:-2])/2,tf.math.add(u[0,:-2,2:,:-2], -u[0,:-2,:-2,:-2])/2,tf.math.add(u[0,:-2,:-2,2:], -u[0,:-2,:-2,:-2])/2
-#     uy_x,uy_y,uy_z = tf.math.add(u[1,2:,:-2,:-2], -u[1,:-2,:-2,:-2])/2,tf.math.add(u[1,:-2,2:,:-2], -u[1,:-2,:-2,:-2])/2,tf.math.add(u[1,:-2,:-2,2:], -u[1,:-2,:-2,:-2])/2
-#     uz_x,uz_y,uz_z = tf.math.add(u[2,2:,:-2,:-2], -u[2,:-2,:-2,:-2])/2,tf.math.add(u[2,:-2,2:,:-2], -u[2,:-2,:-2,:-2])/2,tf.math.add(u[2,:-2,:-2,2:], -u[2,:-2,:-2,:-2])/2
-
-
-#     exx = ux_x
-#     eyy = uy_y
-#     ezz = uz_z
-#     exy = 0.5*tf.math.add(ux_y,uy_x)
-#     exz = 0.5*tf.math.add(ux_z,uz_x)
-#     eyz = 0.5*tf.math.add(uy_z,uz_y)
+def calc_strain_cpu(u,sup,step):
+    dif_x = np.absolute(np.diff(sup,axis=0,append=0))
+    dif_y = np.absolute(np.diff(sup,axis=1,append=0))
+    dif_z = np.absolute(np.diff(sup,axis=2,append=0))
     
-#     strain = tf.stack([exx,eyy,ezz,eyz,exz,exy])/step_size
-#     strain = tf.pad(strain,[[0,0],[0,2],[0,2],[0,2]])
-
-#     return strain
-def calc_strain(u,step_size):
+    border = dif_x+dif_y+dif_z
     
-    ux_x,ux_y,ux_z = tf.math.add(u[0,1:,:-1,:-1], -u[0,:-1,:-1,:-1])/1,tf.math.add(u[0,:-1,1:,:-1], -u[0,:-1,:-1,:-1])/1,tf.math.add(u[0,:-1,:-1,1:], -u[0,:-1,:-1,:-1])/1
-    uy_x,uy_y,uy_z = tf.math.add(u[1,1:,:-1,:-1], -u[1,:-1,:-1,:-1])/1,tf.math.add(u[1,:-1,1:,:-1], -u[1,:-1,:-1,:-1])/1,tf.math.add(u[1,:-1,:-1,1:], -u[1,:-1,:-1,:-1])/1
-    uz_x,uz_y,uz_z = tf.math.add(u[2,1:,:-1,:-1], -u[2,:-1,:-1,:-1])/1,tf.math.add(u[2,:-1,1:,:-1], -u[2,:-1,:-1,:-1])/1,tf.math.add(u[2,:-1,:-1,1:], -u[2,:-1,:-1,:-1])/1
+    border= np.where(border==0.,1.,0.)
+#     border[np.where(sup==0)]=0
+    
+    shape = sup.shape
+    ux,uy,uz = u
+    ux_x,ux_y,ux_z = np.diff(ux,axis=0,append=0),np.diff(ux,axis=1,append=0),np.diff(ux,axis=2,append=0)
+    uy_x,uy_y,uy_z = np.diff(uy,axis=0,append=0),np.diff(uy,axis=1,append=0),np.diff(uy,axis=2,append=0)
+    uz_x,uz_y,uz_z = np.diff(uz,axis=0,append=0),np.diff(uz,axis=1,append=0),np.diff(uz,axis=2,append=0)
+    
+    exx = ux_x
+    eyy = uy_y
+    ezz = uz_z
+    exy = 0.5*(ux_y + uy_x)
+    exz = 0.5*(ux_z + uz_x)
+    eyz = 0.5*(uy_z + uz_y)
+    
+    strain = np.array([exx,eyy,ezz,eyz,exz,exy])/step*border
+    return strain
+def calc_strain_gpu(u,sup,step_size):
+    sup = tf.constant(sup,dtype=tf.float32)
+    u = tf.constant(u,dtype=tf.float32)
+    bx = tf.abs(tf.math.add(sup[1:,:-1,:-1], -sup[:-1,:-1,:-1]))
+    by = tf.abs(tf.math.add(sup[:-1,1:,:-1], -sup[:-1,:-1,:-1]))
+    bz = tf.abs(tf.math.add(sup[:-1,:-1,1:], -sup[:-1,:-1,:-1]))
+    border = bx+by+bz
+    border = tf.where(border != 0.,0.,1.)
+    
+    
+    ux_x,ux_y,ux_z = tf.math.add(u[0,1:,:-1,:-1], -u[0,:-1,:-1,:-1]),tf.math.add(u[0,:-1,1:,:-1], -u[0,:-1,:-1,:-1]),tf.math.add(u[0,:-1,:-1,1:], -u[0,:-1,:-1,:-1])
+    uy_x,uy_y,uy_z = tf.math.add(u[1,1:,:-1,:-1], -u[1,:-1,:-1,:-1]),tf.math.add(u[1,:-1,1:,:-1], -u[1,:-1,:-1,:-1]),tf.math.add(u[1,:-1,:-1,1:], -u[1,:-1,:-1,:-1])
+    uz_x,uz_y,uz_z = tf.math.add(u[2,1:,:-1,:-1], -u[2,:-1,:-1,:-1]),tf.math.add(u[2,:-1,1:,:-1], -u[2,:-1,:-1,:-1]),tf.math.add(u[2,:-1,:-1,1:], -u[2,:-1,:-1,:-1])
     exx = ux_x
     eyy = uy_y
     ezz = uz_z
@@ -92,14 +79,26 @@ def calc_strain(u,step_size):
     exz = 0.5*tf.math.add(ux_z,uz_x)
     eyz = 0.5*tf.math.add(uy_z,uz_y)
     
-    strain = tf.stack([exx,eyy,ezz,eyz,exz,exy])/step_size
+    strain = tf.math.multiply(border,tf.stack([exx,eyy,ezz,eyz,exz,exy]))/step_size
 #     strain = tf.pad(strain,[[0,0],[1,1],[1,1],[1,1]])
     strain = tf.pad(strain,[[0,0],[0,1],[0,1],[0,1]])
 
     return strain.numpy()
+def unpack_obj(obj):
+    amp = np.absolute(obj)[0]
+    sup = np.where(amp>amp.max()*0.01,1,0)
+#     sup = Shrinkwrap(amp,1.0,0.1).numpy()
+    u = np.angle(obj)*sup
+    return u,amp,sup
 
-def calc_rotation(u,step_size):
-    
+def calc_rot(u,sup,step_size):
+    sup = tf.constant(sup,dtype=tf.float32)
+    u = tf.constant(u,dtype=tf.float32)
+    bx = tf.abs(tf.math.add(sup[1:,:-1,:-1], -sup[:-1,:-1,:-1]))
+    by = tf.abs(tf.math.add(sup[:-1,1:,:-1], -sup[:-1,:-1,:-1]))
+    bz = tf.abs(tf.math.add(sup[:-1,:-1,1:], -sup[:-1,:-1,:-1]))
+    border = bx+by+bz
+    border = tf.where(border != 0.,0.,1.)
     ux_x,ux_y,ux_z = tf.math.add(u[0,1:,:-1,:-1], -u[0,:-1,:-1,:-1])/1,tf.math.add(u[0,:-1,1:,:-1], -u[0,:-1,:-1,:-1])/1,tf.math.add(u[0,:-1,:-1,1:], -u[0,:-1,:-1,:-1])/1
     uy_x,uy_y,uy_z = tf.math.add(u[1,1:,:-1,:-1], -u[1,:-1,:-1,:-1])/1,tf.math.add(u[1,:-1,1:,:-1], -u[1,:-1,:-1,:-1])/1,tf.math.add(u[1,:-1,:-1,1:], -u[1,:-1,:-1,:-1])/1
     uz_x,uz_y,uz_z = tf.math.add(u[2,1:,:-1,:-1], -u[2,:-1,:-1,:-1])/1,tf.math.add(u[2,:-1,1:,:-1], -u[2,:-1,:-1,:-1])/1,tf.math.add(u[2,:-1,:-1,1:], -u[2,:-1,:-1,:-1])/1
@@ -108,56 +107,94 @@ def calc_rotation(u,step_size):
     omy = 0.5*tf.math.add(ux_z,-uz_x)
     omx = 0.5*tf.math.add(uy_z,-uz_y)
     
-    strain = tf.stack([omx,omy,omz])/step_size
+    strain = tf.math.multiply(border,tf.stack([omx,omy,omz]))/step_size
 #     strain = tf.pad(strain,[[0,0],[1,1],[1,1],[1,1]])
     strain = tf.pad(strain,[[0,0],[0,1],[0,1],[0,1]])
 
     return strain.numpy()
 
+def stack_strain(strain):
+    exx,eyy,ezz,eyz,exz,exy = strain
+    strain = np.array([[exx,exy,exz],
+                       [exy,eyy,eyz],
+                       [exz,eyz,ezz]])
+    return strain
+def stack_rot(rot):
+    omx,omy,omz = rot
+    rot_mat = np.array([[0,omz,omy],
+                       [-omz,0,omx],
+                       [-omy,-omx,0]])
+    return rot_mat
 
-def plot_strain(strain,min_max=False,strn=True,cmap='coolwarm',shp=(1,6)):
-    fig,axs = plt.subplots(nrows=shp[0],ncols=shp[1],figsize=(5.5*shp[1],4*shp[0]))
+
+def plot_strain(strain,minmax=False,strn=True,cmap='bwr',shp=(1,6),axis=2):
+    fig,axs = plt.subplots(nrows=shp[0],ncols=shp[1],figsize=(6*shp[1],4*shp[0]))
     c = np.array(strain.shape)[1]//2
     if strn:
         labels =[r'$\varepsilon_{xx}$',r'$\varepsilon_{yy}$',r'$\varepsilon_{zz}$',r'$\varepsilon_{yz}$',r'$\varepsilon_{xz}$',r'$\varepsilon_{xy}$'] 
     else:  
         labels = [r'$S_{xx}$',r'$S_{yy}$',r'$S_{zz}$',r'$S_{yz}$',r'$S_{xz}$',r'$S_{xy}$']
     for i,ax in enumerate(axs.ravel()):
-        if min_max != False:
-            minn,maxx = min_max
+        if minmax != False:
+            minn,maxx = minmax
         else:
             minn,maxx = strain[:,c-5:c+5,c-5:c+5,c-5:c+5].min(),strain[:,c-5:c+5,c-5:c+5,c-5:c+5].max()
-        A = ax.imshow(strain[i,:,:,c],vmin=minn,vmax=maxx,cmap=cmap)
-        ax.set_title(labels[i],fontsize=28)
+            
+        if axis == 0:
+            
+            A = ax.imshow(strain[i,c,:,:],vmin=minn,vmax=maxx,cmap=cmap)
+        if axis == 1:
+            A = ax.imshow(strain[i,:,c,:],vmin=minn,vmax=maxx,cmap=cmap)
+        if axis == 2:
+            A = ax.imshow(strain[i,:,:,c],vmin=minn,vmax=maxx,cmap=cmap)
+        ax.set_title(labels[i],fontsize=20)
         fig.colorbar(A,ax=ax,format='%.0e')
     plt.show()
     return 
-def plot_u(u,minmax = None,axis=2):
+def plot_u(u,minmax = None,axis=2,cmap='viridis',scale = None,ax_ticks=True,show = True):
+    
     fig,axs = plt.subplots(nrows=1,ncols=3,figsize= (15,4))
+    fontprops = fm.FontProperties(size=16)
     c = np.array(u.shape)//2
     labels = ['$u_x$','$u_y$','$u_z$']
+    
+    
     for i,ax in enumerate(axs):
         s = u[i,c[1]-5:c[1]+5,c[2]-5:c[2]+5,c[3]-5:c[3]+5]   
         if minmax == None:
             if axis == 0:
                 
-                A = ax.imshow(u[i,c[1],:,:])
+                A = ax.imshow(u[i,c[1],:,:].T,cmap=cmap,origin='lower')
             if axis == 1:
-                A = ax.imshow(u[i,:,c[2],:])
+                A = ax.imshow(u[i,:,c[2],:].T,cmap=cmap,origin='lower')
             if axis == 2:
-                A = ax.imshow(u[i,:,:,c[3]])
+                A = ax.imshow(u[i,:,:,c[3]].T,cmap=cmap,origin='lower')
         else:
             if axis == 0:
-                A = ax.imshow(u[i,c[1],:,:],vmin=minmax[0],vmax=minmax[1])
+                A = ax.imshow(u[i,c[1],:,:].T,vmin=minmax[0],vmax=minmax[1],cmap=cmap,origin='lower')
             if axis == 1:
-                A = ax.imshow(u[i,:,c[2],:],vmin=minmax[0],vmax=minmax[1])
+                A = ax.imshow(u[i,:,c[2],:].T,vmin=minmax[0],vmax=minmax[1],cmap=cmap,origin='lower')
             if axis == 2:
-                A = ax.imshow(u[i,:,:,c[3]],vmin=minmax[0],vmax=minmax[1])
-            
-        ax.set_title(labels[i])
-        fig.colorbar(A,ax=ax)
-    plt.show()
-    return
+                A = ax.imshow(u[i,:,:,c[3]].T,vmin=minmax[0],vmax=minmax[1],cmap=cmap,origin='lower')
+        if scale is not None:
+            scalebar = AnchoredSizeBar(ax.transData,
+                       10, '%s nm'%scale, 'lower left', 
+                       pad=0.1,
+                       color='black',
+                       frameon=False,
+                       size_vertical=1,
+                       fontproperties=fontprops)
+            ax.add_artist(scalebar) 
+        if ax_ticks == False:
+            ax.xaxis.set_visible(False)
+            ax.yaxis.set_visible(False)
+
+        ax.set_title(labels[i],fontsize=16)
+        cbar = fig.colorbar(A,ax=ax,shrink=0.9)
+        cbar.set_label('nm', rotation=270)
+    if show:
+        plt.show()
+    return fig
 def translate(obj,loc1,loc2):
     shift = np.array(loc2)-np.array(loc1)
     obj = np.roll(obj,shift,axis=[-3,-2,-1])
@@ -259,3 +296,14 @@ def plot_rotation(u,minmax = None,axis=2):
         fig.colorbar(A,ax=ax)
     plt.show()
     return
+
+def block_mean(ar, fact):
+    
+    
+    
+    sx, sy, sz = ar.shape
+    X, Y, Z = np.ogrid[0:sx, 0:sy, 0:sz]
+    regions = sz//fact[2]*sy//fact[1] * (X//fact[0]) + sz//fact[2]*(Y//fact[1]) + Z//fact[2]
+    res = ndimage.mean(ar, labels=regions, index=np.arange(regions.max() + 1))
+    res.shape = (sx//fact[0], sy//fact[1],sz//fact[2])
+    return res

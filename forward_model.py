@@ -10,7 +10,7 @@ import numpy as np
 from numpy.fft import fftn, fftshift
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-import Rotate_Peaks as RP
+# import Rotate_Peaks as RPs
 from miscellaneous import translate
     
 class f_model:
