@@ -127,7 +127,7 @@ class multi_grain_phaser:
         return
     
     def extract_objs(self):
-        return self.grain_1,self.grain_1
+        return self.grain_1,self.grain_2
     def extract_err(self):
         return self.err
         
