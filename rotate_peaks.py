@@ -15,7 +15,7 @@ from matplotlib.colors import LogNorm
 import numpy as np
 
 
-def rotate(work_dir_name,dir_name,specfile,scans,data,step_size,final_dims,plot=False):
+def rotate(work_dir_name,dir_name,specfile,scans,data,step_size,final_dims,plot=False,o_twin=None):
     
     
     
@@ -29,7 +29,10 @@ def rotate(work_dir_name,dir_name,specfile,scans,data,step_size,final_dims,plot=
     diff_name = params.diffractometer
     params.set_instruments(det.create_detector(det_name), diff.create_diffractometer(diff_name))
     g1,g2,B_recip = disp.set_geometry(shape,params)
-
+    
+    B_recip = np.stack([B_recip[1,:],B_recip[0,:],B_recip[2,:]])
+    
+    # data = np.moveaxis(data,0,1)
     print('side length', np.abs(np.linalg.det(B_recip))**(1/3))
     
     half_dim = np.array(data.shape)//2
@@ -41,19 +44,28 @@ def rotate(work_dir_name,dir_name,specfile,scans,data,step_size,final_dims,plot=
         plt.show()
     
 
-
+    if o_twin is not None:
+        B_recip = o_twin@B_recip
     data = GC.interpolate(data,B_recip,step_size)
+
     maxHere = np.where(data==data.max())
     for n in [ 0, 1, 2 ]: 
         data = np.roll( data, data.shape[n]//2 - maxHere[n], axis=n )
     
+
+    # data = np.moveaxis(data,0,1)
     
-    mid1 = np.array(data.shape)//2
-    mid2 = np.array(final_dims)//2
+    
+    shp = np.array(final_dims)//2
    
-    data = data[mid1[0]-mid2[0]:mid1[0]+mid2[0],mid1[1]-mid2[1]:mid1[1]+mid2[1],mid1[2]-mid2[2]:mid1[2]+mid2[2]]
+    shp1 = np.array(data.shape)//2
     
-    data = np.moveaxis(data,0,1)
+    pad = shp-shp1
+    pad[pad<0] = 0
+    
+    data = np.pad(data,[(pad[0],pad[0]),(pad[1],pad[1]),(pad[2],pad[2])])
+    shp1 = np.array(data.shape)//2
+    data = data[shp1[0]-shp[0]:shp1[0]+shp[0],shp1[1]-shp[1]:shp1[1]+shp[1],shp1[2]-shp[2]:shp1[2]+shp[2]]
     
     if plot:
         half_dim = np.array(data.shape)//2

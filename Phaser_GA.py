@@ -96,7 +96,7 @@ def run_GA(signal,recipes,num_gen,num_ind,cull,support=None,fitness='chi',pcc=Fa
             B=ax[1].imshow(np.absolute(fftshift(fftn(fftshift(imgs[winner])))**2)[:,:,imgs[winner].shape[2]//2],norm=LogNorm())
             ax[1].set_title('Forward-Modeled Signal')
             fig.colorbar(B,ax=ax[1])
-            C=ax[2].imshow((aa/aa.max())[:,imgs[winner].shape[1]//2,:],vmax=1,vmin=0)
+            C=ax[2].imshow((aa/aa.max())[:,:,imgs[winner].shape[2]//2],vmax=1,vmin=0)
             ax[2].set_title('Reconstructed Amplitude')
             fig.colorbar(C,ax=ax[2])
             plt.show()

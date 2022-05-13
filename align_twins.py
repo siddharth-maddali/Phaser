@@ -84,15 +84,15 @@ def align_sup(amp_1,amp_2,u_11,u_2,plot=True,match_u =True):
                 u_2[i][s2==1] -= u_2[i][s2==1].mean()
             
             #create complex boundary objects and compute cross correlation
-            B_1 = np.complex64(s1*np.exp(1j*u_1))
-            B_2 = np.complex64(s2*np.exp(1j*u_2))
+            B_1 = np.complex64(s1*np.exp(1j*u_1[1]))
+            B_2 = np.complex64(s2*np.exp(1j*u_2[1]))
 
             if match_u:
-                cc = np.absolute(ai.cross_correlation(B_1,B_2).numpy().sum(axis=0))
+                cc = np.absolute(ai.cross_correlation(B_1,B_2).numpy())
             else:
 
                 cc = ai.cross_correlation(np.complex64(s1),np.complex64(s2)).numpy()
-                print('ok')
+                
             inds = np.stack(np.where(cc==cc.max())).T[0]
             
             pairs.append([[s,n1,s],[inds[0],n2,inds[2]]])
@@ -151,7 +151,7 @@ def align_grains(obj1,obj2,coupled=True,match_u = True,sigma=1.5):
         amp_2 = np.where(np.absolute(img2)>0.01*amp_2.max(),np.absolute(img2),0)[0]
         sup_2 = np.where(np.absolute(img2)>0.01*amp_2.max(),1,0)[0]
         u_2 = np.angle(img2)*np.where(amp_2[np.newaxis,:,:,:]>0.01*amp_2.max(),1,0)
-
+        
 
     
     if flip:
@@ -175,20 +175,17 @@ def align_grains(obj1,obj2,coupled=True,match_u = True,sigma=1.5):
     u_2 = translate(u_2,new_2,[shp,shp,shp])
     amp_2 = translate(amp_2,new_2,[shp,shp,shp])
 
-    plt.imshow(amp_1[:,:,shp])
-    plt.show()
-    plt.imshow(amp_2[:,:,shp])
-    plt.show()
+
 
     blur_amp_1 = gf(amp_1/amp_1.max(),[sigma,0,sigma])
     blur_amp_2 = gf(amp_2/amp_2.max(),[sigma,0,sigma])
-    plt.imshow((sup_1+sup_2)[:,:,shp])
-    plt.show()
+    # plt.imshow((sup_1+sup_2)[:,:,shp])
+    # plt.show()
     stack = np.stack([blur_amp_1,blur_amp_2])
     maxx = np.max(stack,axis=0)
-    amp_1 = np.where(maxx == blur_amp_1,amp_1,0)
-    amp_2 = np.where(maxx == blur_amp_2,amp_2,0)
-
+    amp_1 = np.where(maxx == blur_amp_1,amp_1,0.)
+    amp_2 = np.where(maxx == blur_amp_2,amp_2,0.)
+    
 #     u_1[:,:,shp:,:]=0
 #     amp_1[:,shp:,:] = 0
 #     sup_1[:,shp:,:] = 0
@@ -198,8 +195,10 @@ def align_grains(obj1,obj2,coupled=True,match_u = True,sigma=1.5):
 
     sup_1 = np.where(amp_1>0.01*amp_1.max(),1,0)
     sup_2 = np.where(amp_2>0.01*amp_2.max(),1,0)
+    
     u_1 *= sup_1
     u_2 *= sup_2
+    
     #################################################
     uu = u_1+u_2
 
@@ -219,24 +218,32 @@ from copy import copy
 def ramp_us(u_1,u_2,sup_1,sup_2,coupled=True):
     shp = sup_1.shape[1]//2
     
-    mask = np.zeros(sup_1.shape,dtype=bool)
-    mask[shp-10:shp+10,:,shp-10:shp+10] = 1
+
     sup1 = copy(sup_1)
     sup2 = copy(sup_2)
-
+    both = sup1+3*sup2
+    diff = np.diff(both,axis=1,prepend=0)
+    right = np.array(np.where(diff==2)).T
+    right_right = right.copy()
+    right_right[:,1] += 1
+    left = right.copy()
+    left[:,1] -= 1
+    left_left = left.copy()
+    left_left[:,1] -= 1
     
     
-    left = np.array([0.5*(u[:,shp-1,:]-u[:,shp-2,:])+u[:,shp-1,:] for u in u_1])
-    right = np.array([0.5*(u[:,shp,:]-u[:,shp+1,:])+u[:,shp,:] for u in u_2])
-#     right = u_2[:,:,shp,:]
+    left_u = np.array([0.5*(u_1[:,l[0],l[1],l[2]]-u_1[:,ll[0],ll[1],ll[2]]) + u_1[:,l[0],l[1],l[2]] for l,ll in zip(left,left_left)])
+    right_u = np.array([0.5*(u_2[:,r[0],r[1],r[2]]-u_2[:,rr[0],rr[1],rr[2]]) + u_2[:,r[0],r[1],r[2]] for r,rr in zip(right,right_right)])
+    # left = np.array([0.5*(u[:,shp-1,:]-u[:,shp-2,:])+u[:,shp-1,:] for u in u_1])
+    # right = np.array([0.5*(u[:,shp,:]-u[:,shp+1,:])+u[:,shp,:] for u in u_2])
     
-    offset = [np.mean(left[i][sup1[:,shp-1,:]==1])-np.mean(right[i][sup2[:,shp,:]==1]) for i in range(3)]
+    offset = np.mean(left_u-right_u,axis=0)[:,np.newaxis,np.newaxis,np.newaxis]*np.repeat(sup_2[np.newaxis,:,:,:],3,axis=0)
+    # offset = [np.mean(left[i][sup1[:,shp-1,:]==1])-np.mean(right[i][sup2[:,shp,:]==1]) for i in range(3)]
     
-    offset = np.stack([o*sup_2 for o in offset])
+    # offset = np.stack([o*sup_2 for o in offset])
     
-    u_2 = np.array([u_2[i]+offset[i] for i in range(3)])*sup_2
+    u_2 = u_2+offset
     u_3 = u_1+u_2
-#     right = np.array([0.5*(u[:,shp,:]-u[:,shp+1,:])+u[:,shp,:] for u in u_2])
     if coupled:
         left = np.array([0.5*(u[:,shp-1,:]-u[:,shp-2,:])+u[:,shp-1,:] for u in u_3])
         right = np.array([0.5*(u[:,shp,:]-u[:,shp+1,:])+u[:,shp,:] for u in u_3])

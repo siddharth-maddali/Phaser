@@ -2,6 +2,8 @@
 
 from scipy.spatial.transform import Rotation as R
 import numpy as np
+import json
+import itertools
 #convert euler angles to quaternions
 def rmat_2_quat(rmat):
 #     rmat = np.array(rmat).T
@@ -79,3 +81,58 @@ def rot_mat_from_uvwhkl(uvw,hkl):
     
     rot_mat = np.stack([b,t,n])
     return rot_mat
+
+def find_common_ref(grain_dict_path,grainID1,grainID2):
+    
+    with open(grain_dict_path,'r') as file:
+        data = json.load(file)
+    
+    specori_1 = np.array(data['grain_%s'%grainID1]['Spec_Orientation'])
+    specori_2 = np.array(data['grain_%s'%grainID2]['Spec_Orientation'])
+    print('Spec Orient grain 1',specori_1)
+    print('Spec Orient grain 2',specori_2)
+    uvwhkl_1 = np.array([specori_1[0], np.cross(specori_1[0],specori_1[1])]) 
+    uvwhkl_2 = np.array([specori_2[0], np.cross(specori_2[0],specori_2[1])]) 
+
+    o_1 = rot_mat_from_uvwhkl(uvwhkl_1[0],uvwhkl_1[1])
+    o_2 = rot_mat_from_uvwhkl(uvwhkl_2[0],uvwhkl_2[1])
+
+
+    q1 = rmat_2_quat([o_1.T])
+    q2 = rmat_2_quat([o_2.T])
+    mis = calc_disorient(q1,q2)
+    print('misorientation between two crystals:',mis[0])
+
+    gs = np.array([[1,1,1],[-1,1,1],[1,-1,1],[1,1,-1]])
+    gs = gs/np.linalg.norm(gs,axis=1)[:,np.newaxis]
+
+
+    samp_vec_1 = [o_1@g for g in gs]
+    samp_vec_2 = [o_2@g for g in gs]
+
+
+    combos = list(itertools.product(samp_vec_1,samp_vec_2))
+    # print(samp_vec_1)
+    # print('\n',samp_vec_2)
+    angle = lambda a,b: 90-np.abs(90-np.nan_to_num(np.arccos(a@b),0)*180/np.pi)
+
+    angles = [angle(a[0],a[1]) for a in combos]
+    # print(angles)
+    ind = angles.index(min(angles))
+
+
+    print('two vectors:',combos[ind],angles[ind])
+
+
+    ang_1 = [angle(combos[ind][0],s) for s in samp_vec_1]
+    ang_2 = [angle(combos[ind][1],s) for s in samp_vec_2]
+
+    g1 = gs[ang_1.index(min(ang_1))]*np.sqrt(3)
+    g2 = gs[ang_2.index(min(ang_2))]*np.sqrt(3)
+    
+    if np.arccos(combos[ind][0]@combos[ind][1])>np.pi/2:
+        g2 *= -1
+    print('angle closest vectors:',min(angles),'degrees')
+    print('grain %s:'%grainID1,g1)
+    print('grain %s'%grainID2,g2)
+    return g1,g2

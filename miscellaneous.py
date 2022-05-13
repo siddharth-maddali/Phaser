@@ -5,10 +5,12 @@ from copy import copy
 from spec import parse_spec
 from shrinkwrap2 import Shrinkwrap
 from scipy import ndimage
-
+import h5py
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 import matplotlib.font_manager as fm
-
+import itertools
+import json
+from matplotlib.colors import LogNorm
 
 def rescale_noise(pks,max_val):
     peaks = []
@@ -34,7 +36,7 @@ def center_u(u,support):
         u[i] = t
     return u
 
-def calc_strain_cpu(u,sup,step):
+def calc_strain(u,sup,step,gpu=False):
     dif_x = np.absolute(np.diff(sup,axis=0,append=0))
     dif_y = np.absolute(np.diff(sup,axis=1,append=0))
     dif_z = np.absolute(np.diff(sup,axis=2,append=0))
@@ -58,32 +60,35 @@ def calc_strain_cpu(u,sup,step):
     eyz = 0.5*(uy_z + uz_y)
     
     strain = np.array([exx,eyy,ezz,eyz,exz,exy])/step*border
-    return strain
-def calc_strain_gpu(u,sup,step_size):
-    sup = tf.constant(sup,dtype=tf.float32)
-    u = tf.constant(u,dtype=tf.float32)
-    bx = tf.abs(tf.math.add(sup[1:,:-1,:-1], -sup[:-1,:-1,:-1]))
-    by = tf.abs(tf.math.add(sup[:-1,1:,:-1], -sup[:-1,:-1,:-1]))
-    bz = tf.abs(tf.math.add(sup[:-1,:-1,1:], -sup[:-1,:-1,:-1]))
-    border = bx+by+bz
-    border = tf.where(border != 0.,0.,1.)
     
     
-    ux_x,ux_y,ux_z = tf.math.add(u[0,1:,:-1,:-1], -u[0,:-1,:-1,:-1]),tf.math.add(u[0,:-1,1:,:-1], -u[0,:-1,:-1,:-1]),tf.math.add(u[0,:-1,:-1,1:], -u[0,:-1,:-1,:-1])
-    uy_x,uy_y,uy_z = tf.math.add(u[1,1:,:-1,:-1], -u[1,:-1,:-1,:-1]),tf.math.add(u[1,:-1,1:,:-1], -u[1,:-1,:-1,:-1]),tf.math.add(u[1,:-1,:-1,1:], -u[1,:-1,:-1,:-1])
-    uz_x,uz_y,uz_z = tf.math.add(u[2,1:,:-1,:-1], -u[2,:-1,:-1,:-1]),tf.math.add(u[2,:-1,1:,:-1], -u[2,:-1,:-1,:-1]),tf.math.add(u[2,:-1,:-1,1:], -u[2,:-1,:-1,:-1])
-    exx = ux_x
-    eyy = uy_y
-    ezz = uz_z
-    exy = 0.5*tf.math.add(ux_y,uy_x)
-    exz = 0.5*tf.math.add(ux_z,uz_x)
-    eyz = 0.5*tf.math.add(uy_z,uz_y)
     
-    strain = tf.math.multiply(border,tf.stack([exx,eyy,ezz,eyz,exz,exy]))/step_size
-#     strain = tf.pad(strain,[[0,0],[1,1],[1,1],[1,1]])
-    strain = tf.pad(strain,[[0,0],[0,1],[0,1],[0,1]])
+    if gpu:
+        sup = tf.constant(sup,dtype=tf.float32)
+        u = tf.constant(u,dtype=tf.float32)
+        bx = tf.abs(tf.math.add(sup[1:,:-1,:-1], -sup[:-1,:-1,:-1]))
+        by = tf.abs(tf.math.add(sup[:-1,1:,:-1], -sup[:-1,:-1,:-1]))
+        bz = tf.abs(tf.math.add(sup[:-1,:-1,1:], -sup[:-1,:-1,:-1]))
+        border = bx+by+bz
+        border = tf.where(border != 0.,0.,1.)
 
-    return strain.numpy()
+
+        ux_x,ux_y,ux_z = tf.math.add(u[0,1:,:-1,:-1], -u[0,:-1,:-1,:-1]),tf.math.add(u[0,:-1,1:,:-1], -u[0,:-1,:-1,:-1]),tf.math.add(u[0,:-1,:-1,1:], -u[0,:-1,:-1,:-1])
+        uy_x,uy_y,uy_z = tf.math.add(u[1,1:,:-1,:-1], -u[1,:-1,:-1,:-1]),tf.math.add(u[1,:-1,1:,:-1], -u[1,:-1,:-1,:-1]),tf.math.add(u[1,:-1,:-1,1:], -u[1,:-1,:-1,:-1])
+        uz_x,uz_y,uz_z = tf.math.add(u[2,1:,:-1,:-1], -u[2,:-1,:-1,:-1]),tf.math.add(u[2,:-1,1:,:-1], -u[2,:-1,:-1,:-1]),tf.math.add(u[2,:-1,:-1,1:], -u[2,:-1,:-1,:-1])
+        exx = ux_x
+        eyy = uy_y
+        ezz = uz_z
+        exy = 0.5*tf.math.add(ux_y,uy_x)
+        exz = 0.5*tf.math.add(ux_z,uz_x)
+        eyz = 0.5*tf.math.add(uy_z,uz_y)
+
+        strain = tf.math.multiply(border,tf.stack([exx,eyy,ezz,eyz,exz,exy]))/step_size
+    #     strain = tf.pad(strain,[[0,0],[1,1],[1,1],[1,1]])
+        strain = tf.pad(strain,[[0,0],[0,1],[0,1],[0,1]]).numpy()
+        
+    return strain
+
 def unpack_obj(obj):
     amp = np.absolute(obj)[0]
     sup = np.where(amp>amp.max()*0.01,1,0)
@@ -126,7 +131,8 @@ def stack_rot(rot):
                        [-omy,-omx,0]])
     return rot_mat
 
-
+def expand_sup(sup,n):
+    return np.repeat(sup[np.newaxis,:,:,:],n,axis=0)
 def plot_strain(strain,minmax=False,strn=True,cmap='bwr',shp=(1,6),axis=2):
     fig,axs = plt.subplots(nrows=shp[0],ncols=shp[1],figsize=(6*shp[1],4*shp[0]))
     c = np.array(strain.shape)[1]//2
@@ -142,11 +148,11 @@ def plot_strain(strain,minmax=False,strn=True,cmap='bwr',shp=(1,6),axis=2):
             
         if axis == 0:
             
-            A = ax.imshow(strain[i,c,:,:],vmin=minn,vmax=maxx,cmap=cmap)
+            A = ax.imshow(strain[i,c,:,:].T,vmin=minn,vmax=maxx,cmap=cmap,origin='lower')
         if axis == 1:
-            A = ax.imshow(strain[i,:,c,:],vmin=minn,vmax=maxx,cmap=cmap)
+            A = ax.imshow(strain[i,:,c,:].T,vmin=minn,vmax=maxx,cmap=cmap,origin='lower')
         if axis == 2:
-            A = ax.imshow(strain[i,:,:,c],vmin=minn,vmax=maxx,cmap=cmap)
+            A = ax.imshow(strain[i,:,:,c].T,vmin=minn,vmax=maxx,cmap=cmap,origin='lower')
         ax.set_title(labels[i],fontsize=20)
         fig.colorbar(A,ax=ax,format='%.0e')
     plt.show()
@@ -194,6 +200,7 @@ def plot_u(u,minmax = None,axis=2,cmap='viridis',scale = None,ax_ticks=True,show
         cbar.set_label('nm', rotation=270)
     if show:
         plt.show()
+        fig = None
     return fig
 def translate(obj,loc1,loc2):
     shift = np.array(loc2)-np.array(loc1)
@@ -307,3 +314,34 @@ def block_mean(ar, fact):
     res = ndimage.mean(ar, labels=regions, index=np.arange(regions.max() + 1))
     res.shape = (sx//fact[0], sy//fact[1],sz//fact[2])
     return res
+
+
+def extract_data(filename,crop=None):
+    grain = h5py.File(filename,'r')
+    gs = []
+    data = []
+    print(list(grain))
+    
+        
+    for key in grain.keys():
+
+        gs.append(np.array(grain[key]['reflection']))
+        if crop == None:
+            data.append(np.array(grain[key]['data']))
+        else:
+            data.append(np.array(grain[key]['data'])[crop:-crop,crop:-crop,crop:-crop])
+
+
+    data = np.stack(data)
+    maxx = data.max(axis=(1,2,3))[:,np.newaxis,np.newaxis,np.newaxis]
+
+    data = data/maxx*maxx.max()
+    data[data<0.5] = 0
+
+
+
+    fig,axs = plt.subplots(ncols = len(data),figsize=(len(data)*4,6))
+    for ax,dat in zip(axs,data):
+        ax.imshow(dat[:,:,dat.shape[2]//2],norm=LogNorm())
+    plt.show()
+    return data,gs

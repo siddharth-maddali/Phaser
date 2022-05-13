@@ -88,7 +88,14 @@ def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,
                 print('Time to Reconstruct: %s seconds'%np.round(tm,2))
                 print('L:',L[-1],'\nChi:',chi[-1],'\n')
 
+        chis = np.stack(chis)
+        Ls = np.stack(Ls)
+        objs = np.stack(objs)
+        nans = np.where(np.isnan(chis))
+        Ls[nans] = Ls.max()
+        chis[nans] = chis.max()
         
+        objs[nans] = np.repeat(sup[np.newaxis,:,:,:],3,axis=0)
         #dictionary containing inputs necessary for calculating each fitness metric in score.py
         w_dict = { 
                  'chi':chis,
@@ -130,6 +137,7 @@ def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,
                 new_sups = [new_sups[n] for n in range(num_ind) if scores[n]>num_ind//cull[g]]
                 new_objs = [new_objs[n] for n in range(num_ind) if scores[n]>num_ind//cull[g]]
                 num_ind = num_ind//cull[g]
+        
         print('Individual %s Wins'%winner)
         shp2 = np.array(new_sups[0].shape)
         
@@ -142,6 +150,10 @@ def run_ga(data,qs,sup,a,Recipes,num_gen,num_ind,cull,
         new_sups = [np.pad(n,paddings) for n in new_sups]
         
         #set values for next generation
+        fig,axs = plt.subplots(ncols=num_ind,figsize=(5*num_ind,7))
+        for s,ax in zip(new_sups,axs):
+            ax.imshow(s[:,:,s.shape[2]//2])
+        plt.show()
         initial = [[new_objs[n],new_sups[n],False] for n in range(num_ind)]
         
         if verbose:

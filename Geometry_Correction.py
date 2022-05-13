@@ -30,8 +30,8 @@ def interpolate(data,Bases,step_size,plot=False):
     old_grid = np.vstack([xx.ravel(),yy.ravel(),zz.ravel()])  #flatten grid into a 3xN array
 
     new_points = Bases@old_grid  #find coordinates of new grid
-    
-    #FIND BOUNDS OF NEW GRID
+
+    # FIND BOUNDS OF NEW GRID
     min_max = np.zeros((3,2))
     for j in range(3):
         

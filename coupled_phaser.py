@@ -86,15 +86,18 @@ class cpr:
         
     def extract_error( self ):
         self._error = tf.reduce_mean(tf.stack([r._error[1:] for r in self.recons]),axis=0)
+        
 #         self._poisson_log= tf.reduce_sum(tf.stack([r._poisson_log[1:] for r in self.recons]),axis=0)
 
         return list(self._error.numpy()), list(self.L)
     def extract_obj(self):
-        self.u = tf.stack([tf.pad(s,self.paddings,'constant') for s in self.u])
-        self.sup = tf.pad(self.sup,self.paddings,'constant')
-        self.amp = tf.pad(self.amp,self.paddings,'constant')
+        self.u = tf.stack([tf.pad(s,self.paddings,'constant') for s in self.u]).numpy()
+        center_u = self.u[:,self.dim[0]//2,self.dim[1]//2,self.dim[2]//2]
+        self.u -= center_u[:,np.newaxis,np.newaxis,np.newaxis]
+        self.sup = tf.pad(self.sup,self.paddings,'constant').numpy()
+        self.amp = tf.pad(self.amp,self.paddings,'constant').numpy()
 #         {'u':self.u.numpy()*self.sup.numpy()[np.newaxis,:,:,:],'amp':self.amp.numpy(),'sup':self.sup.numpy()}
-        return  self.amp.numpy()*self.sup.numpy()*np.exp(self.u.numpy()*1j)
+        return  self.amp*self.sup*np.exp(self.u*1j)
 
     def UpdateSupport( self ):
 
@@ -129,7 +132,7 @@ class cpr:
         if plot_amp:
             fig,axs = plt.subplots(ncols=self.amp.shape[0],figsize = (15,4))
             for ax,amp in zip(axs,self.amp):
-                ax.imshow(amp[20:-20,20:-20,self.amp.shape[3]//2].T)
+                ax.imshow(tf.transpose(amp[20:-20,20:-20,self.amp.shape[2]//2]))
             plt.show()
 
         self.amp = tf.math.reduce_mean(self.amp,axis=0)
@@ -146,7 +149,7 @@ class cpr:
 
                 m = np.array(phs[i].shape)//2-ss
                 p = phs[i][self.dim[0]//2-ss[0]:self.dim[0]//2+ss[0],self.dim[1]//2-ss[1]:self.dim[1]//2+ss[1],self.dim[2]//2-ss[2]:self.dim[2]//2+ss[2]]
-                ph = tf.Variable(unwrap_phase(p.numpy()),dtype=tf.float32)*self.sup
+                ph = tf.Variable(unwrap_phase(p.numpy(),seed=0),dtype=tf.float32)*self.sup
 
                 phs[i] = tf.pad(ph,[[m[0],m[0]],[m[1],m[1]],[m[2],m[2]]],'constant')
                 phs[i] -= tf.reduce_mean(phs[i][ss[0]-10:ss[0]+10,ss[1]-10:ss[1]+10,ss[2]-10:ss[2]+10])
@@ -187,9 +190,13 @@ class cpr:
         self.amp = self.amp/tf.math.reduce_sum(self.amp)     
 
         self.shp1=phs.shape[:4]
-        qs = tf.ones((self.shp1[0],self.shp1[1],self.shp1[2],self.shp1[3],3))*self.Qs
-        self.u = tf.linalg.lstsq( qs, phs, l2_regularizer=0.0, fast=True, name=None)
-        norm_L = tf.reduce_sum((tf.matmul(qs,self.u)-phs)**2,axis=3)
+        # qs = tf.ones((self.shp1[0],self.shp1[1],self.shp1[2],self.shp1[3],3))*self.Qs
+        # qs = tf.math.round(self.Qs[tf.newaxis,:,:],3)
+        
+        # print(self.Qs.shape)
+        # print( phs.shape)
+        self.u = tf.linalg.lstsq( self.Qs, phs, l2_regularizer=0.0, fast=True, name=None)
+        norm_L = tf.reduce_sum((tf.matmul(self.Qs,self.u)-phs)**2,axis=3)
 
 
 
@@ -243,10 +250,11 @@ class cpr:
             plot_amp=False       
             if self.center:   
                 if i%5 == 0:
-                    plot_amp=True
+                    
                     self.center_phase()  
 
-            
+            if i == len(recipes)-1:
+                plot_amp = False
             self.phase_to_u(recipe[1],plot_amp)
             self.UpdateSupport()
             self.u_to_phase()
