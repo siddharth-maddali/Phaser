@@ -9,6 +9,7 @@ from matplotlib.colors import LogNorm
 from skimage.restoration import unwrap_phase
 from miscellaneous import unpack_obj
 from numpy.fft import fftn,fftshift
+import yaml
 class cpr:
 
     """
@@ -17,15 +18,16 @@ class cpr:
     inputs:
         data -- stack of datasets (numpy array, dtype=float,dimensions=(num_datasetsxnxnxn))
         qs -- q vectors for reflections corresponding to the datasets in data (numpy array, dtype=float,dimensions=(num_datasetsx3)) 
-        obj -- guess for complex displacement object (numpy array, dtype=float,dimensions=(3xnxnxn)). Must be specified if random_start = False.
         a -- lattice parameter (dtype=float units: nm)
+        obj -- guess for complex displacement object (numpy array, dtype=float,dimensions=(3xnxnxn)). Must be specified if random_start = False.
+        
         random_start -- option to start with random phase on all constituents. If true, u is ignored (boolean)
         center -- option to phases of each constituent about zero (dtype=boolean)
         pcc -- option to turn on partial coherence correction (dtype=boolean)
         free_vox_mask -- numpy mask to determine which voxels are used for optimization (numpy array,dtype=boolean, dimensions = (nxnxn))
         gpu -- option to use gpu or not (dtype=boolean)
         unwrap -- option to unwrap phases (dtype=boolean)
-        params -- partial coherence gaussian parameters, one for each constituent (numpy array,dytpe=float, dimensions = (num_datasetsx6))
+        pcc_params -- partial coherence gaussian parameters, one for each constituent (numpy array,dytpe=float, dimensions = (num_datasetsx6))
         
     functions:
         run_recipes -- runs multi_phaser recipes (see tutorial.ipynb for details) --> example: [['ER:20',[1.0,0.1]],['HIO:20',[0]]] 
@@ -38,10 +40,13 @@ class cpr:
                  random_start=True,
                  pcc=False,
                  gpu=True,
-                 params=None,
+                 pcc_params=None,
                  unwrap=False,
-                 center=False,
-                 free_vox_mask=None):
+                 center=False):
+        
+        
+
+            
         
         if obj is not None:
             u,amp,sup = unpack_obj(obj)
@@ -71,8 +76,8 @@ class cpr:
             support = None if random_start else sup,
              img_guess = None if random_start else imgs[i],
             random_start = random_start,pcc=pcc,gpu=gpu).gpusolver for i in range(len(data))]
-        if params != None:
-            for recon,param in zip(self.recons,params):
+        if pcc_params != None:
+            for recon,param in zip(self.recons,pcc_params):
                 recon._pccSolver._vars = param
                 
                 

@@ -6,11 +6,9 @@ import json
 import itertools
 #convert euler angles to quaternions
 def rmat_2_quat(rmat):
-#     rmat = np.array(rmat).T
-    r = R.from_matrix(rmat)
-    
-    r1 = r.inv() #to match the massif convention, where the Bunge Euler/Rotation is transformation from sample to crystal frame. 
-    quat = r1.as_quat()
+
+    r = R.from_matrix(rmat) #rmat is a matrix transforming vector from crystal frame to sample frame
+    quat = r.as_quat()
     
     for num, val in enumerate(quat):
         if val[3] < 0: #q1,q2,q3,q0 format
@@ -98,8 +96,8 @@ def find_common_ref(grain_dict_path,grainID1,grainID2):
     o_2 = rot_mat_from_uvwhkl(uvwhkl_2[0],uvwhkl_2[1])
 
 
-    q1 = rmat_2_quat([o_1.T])
-    q2 = rmat_2_quat([o_2.T])
+    q1 = rmat_2_quat([o_1])
+    q2 = rmat_2_quat([o_2])
     mis = calc_disorient(q1,q2)
     print('misorientation between two crystals:',mis[0])
 

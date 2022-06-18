@@ -1,0 +1,126 @@
+a0: 0.408
+center: false
+criterion: chi
+crop: 10
+cull:
+- 1
+- 1
+- 1
+- 1
+- 1
+- 1
+data_file: grain_7_tutorial.h5
+free_vox_mask: null
+gpu: true
+indices:
+- 1
+- 2
+- 3
+- 4
+num_gen: 4
+num_ind: 6
+pcc: false
+plot_axis: 2
+recipes:
+- &id001
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+  - - ER:10+HIO:10+ER:5
+    - - 1.0
+      - 0.1
+- *id001
+- *id001
+- *id001
+unwrap_gens:
+- true
+- true
+- true
+- true
+- true
+- true
+verbose: true
